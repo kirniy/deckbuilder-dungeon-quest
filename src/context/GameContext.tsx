@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Card, Deck, createStandardDeck, drawCard } from "@/lib/cards";
+import { Card, Deck, createStandardDeck, drawCard, shuffleDeck } from "@/lib/cards";
 
 interface GameContextProps {
   // Player state
@@ -11,6 +11,7 @@ interface GameContextProps {
   playerBonusDamage: number;
   playerChips: number;
   playerDeck: Deck;
+  playerDiscardPile: Deck;
   
   // AI state
   aiHP: number;
@@ -18,15 +19,19 @@ interface GameContextProps {
   aiHand: Card[];
   aiTotal: number;
   aiStood: boolean;
+  aiDeck: Deck;
+  aiDiscardPile: Deck;
   
   // Game state and actions
   roundActive: boolean;
   gameOver: boolean;
+  encounterCount: number;
   
   // Game actions
   hitPlayer: () => void;
   standPlayer: () => void;
   resetRound: () => void;
+  startNewEncounter: () => void;
   addCardToDeck: (card: Card) => void;
   removeCardFromDeck: (cardIndex: number) => void;
   spendChips: (amount: number) => boolean;
@@ -60,6 +65,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [playerBonusDamage, setPlayerBonusDamage] = useState(0);
   const [playerChips, setPlayerChips] = useState(INITIAL_CHIPS);
   const [playerDeck, setPlayerDeck] = useState<Deck>(createStandardDeck());
+  const [playerDiscardPile, setPlayerDiscardPile] = useState<Deck>([]);
   
   // AI state
   const [aiHP, setAiHP] = useState(INITIAL_HP);
@@ -67,12 +73,74 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [aiHand, setAiHand] = useState<Card[]>([]);
   const [aiTotal, setAiTotal] = useState(0);
   const [aiStood, setAiStood] = useState(false);
+  const [aiDeck, setAiDeck] = useState<Deck>(createAIDeck());
+  const [aiDiscardPile, setAiDiscardPile] = useState<Deck>([]);
   
   // Game state
   const [roundActive, setRoundActive] = useState(true);
   const [gameOver, setGameOver] = useState(false);
   const [aiTurnInProgress, setAiTurnInProgress] = useState(false); // Track AI turn
   const [playerStood, setPlayerStood] = useState(false); // Track if player has stood
+  const [encounterCount, setEncounterCount] = useState(1); // Track number of encounters
+  
+  // Function to create a custom AI deck
+  function createAIDeck(): Deck {
+    const deck: Deck = [];
+    const suits: ["hearts", "diamonds", "clubs", "spades"] = ["hearts", "diamonds", "clubs", "spades"];
+    
+    // Add more high cards to make AI more competitive
+    // 10s, Jacks, Queens, Kings (all value 10)
+    for (const suit of suits) {
+      // Add more 10-value cards
+      for (let i = 0; i < 8; i++) {
+        deck.push({
+          value: 10,
+          suit,
+          type: "standard",
+          name: `10 of ${suit}`,
+        });
+      }
+      
+      // Add some Aces (value 1, calculated as 11 if beneficial)
+      for (let i = 0; i < 4; i++) {
+        deck.push({
+          value: 1,
+          suit,
+          type: "standard",
+          name: `Ace of ${suit}`,
+        });
+      }
+    }
+    
+    // Add some mid-value cards
+    for (const suit of suits) {
+      for (let value = 7; value <= 9; value++) {
+        for (let i = 0; i < 3; i++) {
+          deck.push({
+            value,
+            suit,
+            type: "standard",
+            name: `${value} of ${suit}`,
+          });
+        }
+      }
+    }
+    
+    // Add fewer low cards
+    for (const suit of suits) {
+      for (let value = 2; value <= 6; value++) {
+        deck.push({
+          value,
+          suit,
+          type: "standard",
+          name: `${value} of ${suit}`,
+        });
+      }
+    }
+    
+    // Shuffle the deck
+    return shuffleDeck(deck);
+  }
   
   // Calculate the total value of a hand, accounting for Aces
   const calculateHandTotal = (hand: Card[]) => {
@@ -109,30 +177,105 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setAiTotal(calculateHandTotal(aiHand));
   }, [aiHand]);
   
+  // Draw a card for player
+  const drawPlayerCard = () => {
+    // If deck is empty, shuffle discard pile back into deck
+    if (playerDeck.length === 0) {
+      if (playerDiscardPile.length === 0) {
+        // Both deck and discard are empty, create a new deck
+        setPlayerDeck(createStandardDeck());
+        return drawPlayerCard();
+      } else {
+        // Shuffle discard pile into deck
+        setPlayerDeck(shuffleDeck([...playerDiscardPile]));
+        setPlayerDiscardPile([]);
+        return drawPlayerCard();
+      }
+    }
+    
+    // Draw from deck
+    const card = playerDeck[0];
+    setPlayerDeck(prevDeck => prevDeck.slice(1));
+    return card;
+  };
+  
+  // Draw a card for AI
+  const drawAICard = () => {
+    // If deck is empty, shuffle discard pile back into deck
+    if (aiDeck.length === 0) {
+      if (aiDiscardPile.length === 0) {
+        // Both deck and discard are empty, create a new deck
+        setAiDeck(createAIDeck());
+        return drawAICard();
+      } else {
+        // Shuffle discard pile into deck
+        setAiDeck(shuffleDeck([...aiDiscardPile]));
+        setAiDiscardPile([]);
+        return drawAICard();
+      }
+    }
+    
+    // Draw from deck
+    const card = aiDeck[0];
+    setAiDeck(prevDeck => prevDeck.slice(1));
+    return card;
+  };
+  
   // AI draw single card function - for use in player turn
   const aiDrawCard = () => {
-    if (aiTotal < 17 && roundActive && !aiStood) {
-      const [newCard, updatedDeck] = drawCard(playerDeck);
-      setPlayerDeck(updatedDeck);
-      setAiHand(prev => [...prev, newCard]);
+    if (roundActive && !aiStood) {
+      // AI strategy:
+      // 1. Always hit if total is less than 12 (very low risk of bust)
+      // 2. Calculate risk based on current total and player's visible hand
+      // 3. If player has strong hand (17+), take more risks
+      // 4. Stand at 17+ by default
       
-      // Check if AI should stand based on new total
-      const newTotal = calculateHandTotal([...aiHand, newCard]);
-      if (newTotal >= 17) {
+      const currentTotal = aiTotal;
+      
+      // Always hit if total is less than 12
+      if (currentTotal < 12) {
+        const card = drawAICard();
+        setAiHand(prev => [...prev, card]);
+        return;
+      }
+      
+      // Stand at 17 or higher
+      if (currentTotal >= 17) {
         setAiStood(true);
+        
+        // Check if player has also stood to resolve the round
+        if (playerStood || playerTotal >= 21) {
+          resolveRound();
+        }
+        return;
       }
       
-      // Check if player and AI have both stood
-      if ((playerStood || playerTotal >= 21) && (newTotal >= 17 || newTotal > 21)) {
-        resolveRound();
-      }
-    } else {
-      // AI is already at 17+ or has stood
-      setAiStood(true);
+      // Middle range (12-16) - decision based on strategy
+      // If player showing strong hand, take more risk
+      // Risk factor calculation: higher means more likely to hit
+      const riskFactor = playerTotal >= 17 ? 0.7 : 0.4;
       
-      // Check if player has also stood to resolve the round
-      if (playerStood || playerTotal >= 21) {
-        resolveRound();
+      // More aggressive if behind
+      const aggressionBonus = playerTotal > currentTotal ? 0.2 : 0;
+      
+      // Careful if close to 21
+      const cautionPenalty = currentTotal >= 16 ? 0.3 : 0;
+      
+      // Final calculation
+      const hitProbability = riskFactor + aggressionBonus - cautionPenalty;
+      
+      if (Math.random() < hitProbability) {
+        // Decided to hit
+        const card = drawAICard();
+        setAiHand(prev => [...prev, card]);
+      } else {
+        // Decided to stand
+        setAiStood(true);
+        
+        // Check if player has also stood to resolve the round
+        if (playerStood || playerTotal >= 21) {
+          resolveRound();
+        }
       }
     }
   };
@@ -151,25 +294,49 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    // AI needs to draw until 17+
+    // AI needs to draw until strategy says to stand
     let cardCount = 0;
     
-    // Keep drawing until 17+ or max cards reached
-    while (aiTotal < 17 && cardCount < MAX_AI_CARDS) {
+    // Keep drawing until strategy says to stand or max cards reached
+    while (cardCount < MAX_AI_CARDS) {
       // Wait for animation
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Draw card
-      const [newCard, updatedDeck] = drawCard(playerDeck);
-      setPlayerDeck(updatedDeck);
-      setAiHand(prev => [...prev, newCard]);
-      cardCount++;
+      const currentTotal = calculateHandTotal(aiHand);
       
-      // Recalculate total with this new card
-      const newTotal = calculateHandTotal([...aiHand, newCard]);
+      // Always stand at 17 or higher
+      if (currentTotal >= 17) {
+        break;
+      }
       
-      // If AI busts or reaches 17+, stop drawing
-      if (newTotal >= 17 || newTotal > 21) {
+      // Always hit if less than 12
+      if (currentTotal < 12) {
+        const card = drawAICard();
+        setAiHand(prev => [...prev, card]);
+        cardCount++;
+        continue;
+      }
+      
+      // For 12-16 range, use strategic decision making
+      const riskFactor = playerTotal >= 17 ? 0.7 : 0.4;
+      const aggressionBonus = playerTotal > currentTotal ? 0.2 : 0;
+      const cautionPenalty = currentTotal >= 16 ? 0.3 : 0;
+      
+      const hitProbability = riskFactor + aggressionBonus - cautionPenalty;
+      
+      if (Math.random() < hitProbability) {
+        // Decided to hit
+        const card = drawAICard();
+        setAiHand(prev => [...prev, card]);
+        cardCount++;
+        
+        // Check if AI busts with this new card
+        const newTotal = calculateHandTotal([...aiHand, card]);
+        if (newTotal > 21) {
+          break;
+        }
+      } else {
+        // Decided to stand
         break;
       }
     }
@@ -183,29 +350,27 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   // Initialize the round
   useEffect(() => {
     if (roundActive && playerHand.length === 0 && aiHand.length === 0) {
-      // Both start with one card
-      hitPlayer(true); // Initial draw - without AI response
+      // Both start with no cards, waiting for player to hit
     }
-  }, [roundActive]);
+  }, [roundActive, playerHand.length, aiHand.length]);
   
   // Player actions
-  const hitPlayer = (isInitialDraw = false) => {
+  const hitPlayer = () => {
     if (!roundActive) return;
     
-    const [newCard, updatedDeck] = drawCard(playerDeck);
-    setPlayerHand(prev => [...prev, newCard]);
-    setPlayerDeck(updatedDeck);
+    const card = drawPlayerCard();
+    setPlayerHand(prev => [...prev, card]);
     
     // Check if player busts
-    const newTotal = calculateHandTotal([...playerHand, newCard]);
+    const newTotal = calculateHandTotal([...playerHand, card]);
     if (newTotal > 21) {
       setPlayerStood(true);
       aiFinishTurn();
       return;
     }
     
-    // AI takes its turn after player (except on initial draw)
-    if (!isInitialDraw && !aiStood) {
+    // AI takes its turn after player if not stood
+    if (!aiStood) {
       // Add a small delay before AI moves
       setTimeout(() => {
         aiDrawCard();
@@ -289,10 +454,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       }
     }
     
-    // Reset bonus damage if it was used this round
-    if (playerBonusDamage > 0 && playerTotal <= 21) {
-      setPlayerBonusDamage(0);
-    }
+    // Move all cards to discard piles
+    setPlayerDiscardPile(prev => [...prev, ...playerHand]);
+    setAiDiscardPile(prev => [...prev, ...aiHand]);
+    
+    // Clear hands
+    setPlayerHand([]);
+    setAiHand([]);
   };
   
   // Apply damage functions
@@ -338,6 +506,23 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setRoundActive(true);
   };
   
+  // Start a new encounter (after defeating an opponent)
+  const startNewEncounter = () => {
+    // Increment encounter counter
+    setEncounterCount(prev => prev + 1);
+    
+    // Create a new AI with slightly higher HP
+    setAiHP(INITIAL_HP + (encounterCount * 10));
+    setAiMaxHP(INITIAL_HP + (encounterCount * 10));
+    
+    // Reset the AI's deck
+    setAiDeck(createAIDeck());
+    setAiDiscardPile([]);
+    
+    // Reset round state
+    resetRound();
+  };
+  
   // Deck modification functions
   const addCardToDeck = (card: Card) => {
     setPlayerDeck(prev => [...prev, card]);
@@ -374,14 +559,19 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setPlayerBonusDamage(0);
     setPlayerChips(INITIAL_CHIPS);
     setPlayerDeck(createStandardDeck());
+    setPlayerDiscardPile([]);
     
     setAiHP(INITIAL_HP);
     setAiMaxHP(INITIAL_HP);
     setAiHand([]);
     setAiTotal(0);
     setAiStood(false);
+    setAiDeck(createAIDeck());
+    setAiDiscardPile([]);
+    
     setAiTurnInProgress(false);
     setPlayerStood(false);
+    setEncounterCount(1);
     
     setRoundActive(true);
     setGameOver(false);
@@ -397,6 +587,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     playerBonusDamage,
     playerChips,
     playerDeck,
+    playerDiscardPile,
     
     // AI state
     aiHP,
@@ -404,15 +595,19 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     aiHand,
     aiTotal,
     aiStood,
+    aiDeck,
+    aiDiscardPile,
     
     // Game state
     roundActive,
     gameOver,
+    encounterCount,
     
     // Game actions
     hitPlayer,
     standPlayer,
     resetRound,
+    startNewEncounter,
     addCardToDeck,
     removeCardFromDeck,
     spendChips,

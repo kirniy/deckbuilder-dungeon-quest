@@ -21,14 +21,15 @@ const AIHand = ({ hand, total, isStood, revealCards }: AIHandProps) => {
   return (
     <div className="flex flex-col items-center">
       {/* AI cards are shown face down unless revealed */}
-      <div className="flex justify-center items-start mb-1 h-24 relative">
+      <div className="flex justify-center items-start mb-3 h-32 relative">
         {hand.length > 0 ? (
           hand.map((card, index) => (
             <div 
               key={`ai-card-${index}`}
               className="absolute transform transition-all duration-300 ease-out"
               style={{
-                transform: `translateX(${index * 15 - (hand.length * 7.5)}px)`,
+                transform: `translateX(${index * 24 - (hand.length * 12)}px) rotate(${index * 3 - (hand.length * 1.5)}deg)`,
+                transformOrigin: 'bottom center',
                 zIndex: index,
               }}
             >
@@ -36,7 +37,6 @@ const AIHand = ({ hand, total, isStood, revealCards }: AIHandProps) => {
                 card={card} 
                 faceDown={!revealCards}
                 aiCard
-                small
               />
             </div>
           ))

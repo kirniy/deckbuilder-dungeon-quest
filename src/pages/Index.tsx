@@ -4,10 +4,38 @@ import GameScreen from "@/components/GameScreen";
 import ShopScreen from "@/components/ShopScreen";
 import TitleScreen from "@/components/TitleScreen";
 import GameOverScreen from "@/components/GameOverScreen";
-import { GameProvider } from "@/context/GameContext";
+import { GameProvider, useGame } from "@/context/GameContext";
 import { useToast } from "@/hooks/use-toast";
 
 type GameState = "title" | "game" | "shop" | "gameOver";
+
+const GameStateManager = ({ 
+  onGameOver 
+}: { 
+  onGameOver: (result: "win" | "lose") => void 
+}) => {
+  const { aiHP, playerHP, startNewEncounter } = useGame();
+  const { toast } = useToast();
+  
+  // Check for encounter completion
+  useEffect(() => {
+    if (aiHP <= 0) {
+      toast({
+        title: "Encounter Complete!",
+        description: "You've defeated your opponent! Visit the shop to prepare for the next encounter.",
+      });
+    }
+  }, [aiHP, toast]);
+  
+  // Check for game over
+  useEffect(() => {
+    if (playerHP <= 0) {
+      onGameOver("lose");
+    }
+  }, [playerHP, onGameOver]);
+  
+  return null;
+};
 
 const Index = () => {
   const [gameState, setGameState] = useState<GameState>("title");
@@ -42,7 +70,7 @@ const Index = () => {
     toast({
       title: result === "win" ? "Victory!" : "Defeat!",
       description: result === "win" 
-        ? "You've defeated your opponent!" 
+        ? "You've defeated all your opponents!" 
         : "Your HP has reached zero!",
       variant: result === "win" ? "default" : "destructive",
     });
@@ -60,10 +88,13 @@ const Index = () => {
         {gameState === "title" && <TitleScreen onStart={startGame} />}
         
         {gameState === "game" && (
-          <GameScreen 
-            onRoundEnd={goToShop}
-            onGameOver={endGame}
-          />
+          <>
+            <GameStateManager onGameOver={endGame} />
+            <GameScreen 
+              onRoundEnd={goToShop}
+              onGameOver={endGame}
+            />
+          </>
         )}
         
         {gameState === "shop" && (

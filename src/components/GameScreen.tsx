@@ -6,7 +6,8 @@ import AIHand from "./AIHand";
 import HealthBar from "./HealthBar";
 import GameControls from "./GameControls";
 import StatusEffects from "./StatusEffects";
-import { toast } from "@/hooks/use-toast";
+import DeckPile from "./DeckPile";
+import { useToast } from "@/hooks/use-toast";
 
 interface GameScreenProps {
   onRoundEnd: () => void;
@@ -22,23 +23,30 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
     playerShield,
     playerBonusDamage,
     playerChips,
+    playerDeck,
+    playerDiscardPile,
     
     aiHP,
     aiMaxHP,
     aiHand,
     aiTotal,
     aiStood,
+    aiDeck,
+    aiDiscardPile,
     
     roundActive,
     gameOver,
+    encounterCount,
     
     hitPlayer,
     standPlayer,
-    resetRound
+    resetRound,
+    startNewEncounter
   } = useGame();
   
   const [roundResult, setRoundResult] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const { toast } = useToast();
   
   // Check for game over
   useEffect(() => {
@@ -108,36 +116,55 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
         description: resultMessage,
       });
       
-      // Proceed to shop after a delay
+      // Proceed to next round after delay
       const timer = setTimeout(() => {
         setShowResults(false);
-        onRoundEnd();
         
-        // Reset for next round after shop
-        resetRound();
+        // Check if AI is defeated
+        if (aiHP <= 0) {
+          // Encounter complete - go to shop
+          onRoundEnd();
+        } else {
+          // Continue with next round in same encounter
+          resetRound();
+        }
       }, 3000);
       
       return () => clearTimeout(timer);
     }
-  }, [roundActive, gameOver, playerTotal, aiTotal, playerHand, playerBonusDamage, onRoundEnd, resetRound]);
+  }, [roundActive, gameOver, playerTotal, aiTotal, playerHand, playerBonusDamage, aiHP, onRoundEnd, resetRound, toast]);
   
   return (
     <div className="flex flex-col w-full h-full max-w-md mx-auto">
-      {/* AI Section */}
+      {/* Top Section - AI Area */}
       <div className="mb-6">
-        <h2 className="text-lg font-pixel mb-2 text-white">Opponent</h2>
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-lg font-pixel text-white">Opponent</h2>
+          <div className="flex items-center">
+            <span className="text-sm font-pixel text-white mr-2">Encounter: {encounterCount}</span>
+          </div>
+        </div>
+        
         <HealthBar 
           current={aiHP} 
           max={aiMaxHP}
           barColor="bg-red-500"
           textColor="text-red-300"
         />
-        <AIHand 
-          hand={aiHand} 
-          total={aiTotal} 
-          isStood={aiStood}
-          revealCards={!roundActive || showResults}
-        />
+        
+        <div className="mt-2 mb-4">
+          <AIHand 
+            hand={aiHand} 
+            total={aiTotal} 
+            isStood={aiStood}
+            revealCards={!roundActive || showResults}
+          />
+        </div>
+        
+        <div className="flex justify-center space-x-8 mt-2">
+          <DeckPile deck={aiDeck} label="Deck" isAI />
+          <DeckPile deck={aiDiscardPile} label="Discard" isAI />
+        </div>
       </div>
       
       {/* Round Result Overlay */}
@@ -151,42 +178,54 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
         </div>
       )}
       
-      {/* Player Status */}
-      <div className="mt-auto mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-pixel text-white">You</h2>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center">
-              <span className="text-yellow-400 font-pixel">🪙 {playerChips}</span>
+      {/* Middle Divider */}
+      <div className="border-t border-gray-700 my-4"></div>
+      
+      {/* Bottom Section - Player Area */}
+      <div className="mt-auto">
+        {/* Player Status */}
+        <div className="mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-lg font-pixel text-white">You</h2>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center">
+                <span className="text-yellow-400 font-pixel">🪙 {playerChips}</span>
+              </div>
+              <StatusEffects 
+                shield={playerShield} 
+                bonusDamage={playerBonusDamage} 
+              />
             </div>
-            <StatusEffects 
-              shield={playerShield} 
-              bonusDamage={playerBonusDamage} 
-            />
           </div>
+          <HealthBar 
+            current={playerHP} 
+            max={playerMaxHP}
+            barColor="bg-green-500"
+            textColor="text-green-300"
+          />
         </div>
-        <HealthBar 
-          current={playerHP} 
-          max={playerMaxHP}
-          barColor="bg-green-500"
-          textColor="text-green-300"
+        
+        {/* Player Deck Piles */}
+        <div className="flex justify-center space-x-8 mb-4">
+          <DeckPile deck={playerDeck} label="Deck" />
+          <DeckPile deck={playerDiscardPile} label="Discard" />
+        </div>
+        
+        {/* Player Cards */}
+        <div className="mb-6">
+          <PlayerHand 
+            hand={playerHand} 
+            total={playerTotal} 
+          />
+        </div>
+        
+        {/* Controls */}
+        <GameControls
+          onHit={hitPlayer}
+          onStand={standPlayer}
+          disabled={!roundActive || gameOver}
         />
       </div>
-      
-      {/* Player Cards */}
-      <div className="mb-6">
-        <PlayerHand 
-          hand={playerHand} 
-          total={playerTotal} 
-        />
-      </div>
-      
-      {/* Controls */}
-      <GameControls
-        onHit={hitPlayer}
-        onStand={standPlayer}
-        disabled={!roundActive || gameOver}
-      />
     </div>
   );
 };
