@@ -50,6 +50,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   // Constants
   const INITIAL_HP = 100;
   const INITIAL_CHIPS = 20;
+  const MAX_AI_CARDS = 10; // Maximum number of cards the AI can draw to prevent infinite loops
   
   // Player state
   const [playerHP, setPlayerHP] = useState(INITIAL_HP);
@@ -71,6 +72,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   // Game state
   const [roundActive, setRoundActive] = useState(true);
   const [gameOver, setGameOver] = useState(false);
+  const [aiTurnInProgress, setAiTurnInProgress] = useState(false); // New state to track AI turn
   
   // Calculate the total value of a hand, accounting for Aces
   const calculateHandTotal = (hand: Card[]) => {
@@ -109,35 +111,62 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   
   // AI logic: hit until 17 or higher
   useEffect(() => {
-    if (roundActive && aiStood === false && playerHand.length > 0) {
+    // Only run AI turn if:
+    // 1. Round is active
+    // 2. AI has not stood
+    // 3. Player has cards
+    // 4. Player has stood (total >= 21 or manually stood)
+    // 5. AI turn is not already in progress
+    if (roundActive && 
+        !aiStood && 
+        playerHand.length > 0 && 
+        (playerTotal >= 21 || playerHand.length === 0) && 
+        !aiTurnInProgress) {
+      
       // AI turn after player stands or busts
       const aiTurn = async () => {
-        while (aiTotal < 17) {
+        // Set flag to prevent multiple AI turns from running simultaneously
+        setAiTurnInProgress(true);
+
+        // Add safety check to prevent infinite loops
+        let cardCount = 0;
+        
+        while (aiTotal < 17 && cardCount < MAX_AI_CARDS) {
           // Wait a bit for animation
           await new Promise(resolve => setTimeout(resolve, 800));
           
-          if (aiTotal < 17) {
+          // Recalculate AI total to make decisions based on current state
+          const currentAiTotal = calculateHandTotal(aiHand);
+          
+          if (currentAiTotal < 17) {
             // Draw a card
             const [newCard, updatedDeck] = drawCard(playerDeck);
+            setPlayerDeck(updatedDeck);
             setAiHand(prev => [...prev, newCard]);
             
-            // Check if AI busts
+            // Increment card counter
+            cardCount++;
+            
+            // Check if AI busts with this new card
             const newTotal = calculateHandTotal([...aiHand, newCard]);
             if (newTotal > 21) {
               break;
             }
+          } else {
+            // AI has 17 or more, end the loop
+            break;
           }
         }
         
+        // AI has finished its turn
         setAiStood(true);
+        setAiTurnInProgress(false);
         resolveRound();
       };
       
-      if (playerTotal >= 21 || playerHand.length === 0) {
-        aiTurn();
-      }
+      aiTurn();
     }
-  }, [aiTotal, aiStood, playerHand, roundActive]);
+  }, [aiTotal, aiStood, playerHand, roundActive, aiTurnInProgress, playerTotal]);
   
   // Player actions
   const hitPlayer = () => {
@@ -246,19 +275,21 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
     
     // Apply remaining damage to HP
-    setPlayerHP(prev => Math.max(0, prev - damage));
+    const newHP = Math.max(0, playerHP - damage);
+    setPlayerHP(newHP);
     
     // Check for game over
-    if (playerHP - damage <= 0) {
+    if (newHP <= 0) {
       setGameOver(true);
     }
   };
   
   const applyDamageToAI = (damage: number) => {
-    setAiHP(prev => Math.max(0, prev - damage));
+    const newHP = Math.max(0, aiHP - damage);
+    setAiHP(newHP);
     
     // Check for game over
-    if (aiHP - damage <= 0) {
+    if (newHP <= 0) {
       setGameOver(true);
     }
   };
@@ -268,6 +299,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setPlayerHand([]);
     setAiHand([]);
     setAiStood(false);
+    setAiTurnInProgress(false); // Reset AI turn flag
     setRoundActive(true);
   };
   
@@ -313,6 +345,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setAiHand([]);
     setAiTotal(0);
     setAiStood(false);
+    setAiTurnInProgress(false);
     
     setRoundActive(true);
     setGameOver(false);
