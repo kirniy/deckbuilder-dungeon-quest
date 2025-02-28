@@ -137,11 +137,11 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
   return (
     <div className="flex flex-col w-full h-full max-w-md mx-auto">
       {/* Top Section - AI Area */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center mb-2">
-          <h2 className="text-lg font-pixel text-white">Opponent</h2>
+      <div className="mb-2">
+        <div className="flex justify-between items-center mb-1">
+          <h2 className="text-sm font-pixel text-white">Opponent</h2>
           <div className="flex items-center">
-            <span className="text-sm font-pixel text-white mr-2">Encounter: {encounterCount}</span>
+            <span className="text-xs font-pixel text-white mr-2">Encounter: {encounterCount}</span>
           </div>
         </div>
         
@@ -152,16 +152,16 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
           textColor="text-red-300"
         />
         
-        <div className="mt-2 mb-4">
+        <div className="mt-1 mb-2">
           <AIHand 
             hand={aiHand} 
             total={aiTotal} 
             isStood={aiStood}
-            revealCards={!roundActive || showResults}
+            revealCards={true} // Always show AI cards face up
           />
         </div>
         
-        <div className="flex justify-center space-x-8 mt-2">
+        <div className="flex justify-center space-x-4 mt-1">
           <DeckPile deck={aiDeck} label="Deck" isAI />
           <DeckPile deck={aiDiscardPile} label="Discard" isAI />
         </div>
@@ -170,26 +170,26 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
       {/* Round Result Overlay */}
       {showResults && roundResult && (
         <div className="fixed inset-0 flex items-center justify-center z-20 bg-black bg-opacity-60">
-          <div className="bg-dark-card p-6 rounded-lg border-2 border-card-border shadow-glow animate-scale-in">
-            <h2 className="text-xl font-pixel mb-4 text-white">Round Result</h2>
-            <p className="text-lg text-white font-pixel mb-4">{roundResult}</p>
-            <p className="text-sm text-white opacity-70">Continuing in a moment...</p>
+          <div className="bg-dark-card p-4 rounded-lg border-2 border-card-border shadow-glow animate-scale-in max-w-[90%]">
+            <h2 className="text-lg font-pixel mb-2 text-white">Round Result</h2>
+            <p className="text-base text-white font-pixel mb-3">{roundResult}</p>
+            <p className="text-xs text-white opacity-70">Continuing in a moment...</p>
           </div>
         </div>
       )}
       
       {/* Middle Divider */}
-      <div className="border-t border-gray-700 my-4"></div>
+      <div className="border-t border-gray-700 my-2"></div>
       
       {/* Bottom Section - Player Area */}
       <div className="mt-auto">
         {/* Player Status */}
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-lg font-pixel text-white">You</h2>
-            <div className="flex items-center space-x-4">
+        <div className="mb-2">
+          <div className="flex justify-between items-center mb-1">
+            <h2 className="text-sm font-pixel text-white">You</h2>
+            <div className="flex items-center space-x-3">
               <div className="flex items-center">
-                <span className="text-yellow-400 font-pixel">🪙 {playerChips}</span>
+                <span className="text-yellow-400 font-pixel text-xs">🪙 {playerChips}</span>
               </div>
               <StatusEffects 
                 shield={playerShield} 
@@ -206,13 +206,13 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
         </div>
         
         {/* Player Deck Piles */}
-        <div className="flex justify-center space-x-8 mb-4">
+        <div className="flex justify-center space-x-4 mb-2">
           <DeckPile deck={playerDeck} label="Deck" />
           <DeckPile deck={playerDiscardPile} label="Discard" />
         </div>
         
         {/* Player Cards */}
-        <div className="mb-6">
+        <div className="mb-3">
           <PlayerHand 
             hand={playerHand} 
             total={playerTotal} 

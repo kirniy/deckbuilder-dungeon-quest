@@ -10,49 +10,23 @@ interface PlayerHandProps {
 
 const PlayerHand = ({ hand, total }: PlayerHandProps) => {
   const [busted, setBusted] = useState(false);
-  const [isBlackjack, setIsBlackjack] = useState(false);
   
-  // Check for bust or blackjack
+  // Check if player busted
   useEffect(() => {
     setBusted(total > 21);
-    setIsBlackjack(total === 21);
   }, [total]);
   
   return (
     <div className="flex flex-col items-center">
-      {/* Display total value */}
-      <div className="mb-2">
-        <span 
-          className={`text-xl font-pixel 
-            ${busted ? 'text-red-500' : ''} 
-            ${isBlackjack ? 'text-yellow-400' : 'text-white'}
-          `}
-        >
-          {hand.length > 0 ? `Total: ${total}` : "Draw cards to begin"}
-        </span>
-        
-        {busted && (
-          <span className="ml-2 bg-red-700 text-white px-2 py-0.5 rounded text-xs font-pixel animate-pulse">
-            BUST!
-          </span>
-        )}
-        
-        {isBlackjack && (
-          <span className="ml-2 bg-yellow-700 text-white px-2 py-0.5 rounded text-xs font-pixel animate-pulse">
-            BLACKJACK!
-          </span>
-        )}
-      </div>
-      
-      {/* Player cards in a fan layout */}
-      <div className="flex justify-center items-end mb-4 min-h-32 relative">
+      {/* Player cards */}
+      <div className="flex justify-center items-end mb-2 h-24 relative">
         {hand.length > 0 ? (
           hand.map((card, index) => (
             <div 
               key={`player-card-${index}`}
               className="absolute transform transition-all duration-300 ease-out"
               style={{
-                transform: `translateX(${index * 25 - (hand.length * 12.5)}px) rotate(${index * 5 - (hand.length * 2.5)}deg)`,
+                transform: `translateX(${index * 20 - (hand.length * 10)}px) rotate(${index * 3 - (hand.length * 1.5)}deg)`,
                 transformOrigin: 'bottom center',
                 zIndex: index,
               }}
@@ -61,7 +35,22 @@ const PlayerHand = ({ hand, total }: PlayerHandProps) => {
             </div>
           ))
         ) : (
-          <div className="text-gray-500 font-pixel">No cards in hand</div>
+          <div className="text-gray-500 font-pixel text-xs">No cards</div>
+        )}
+      </div>
+      
+      {/* Player Total */}
+      <div className="flex items-center space-x-2">
+        <span 
+          className={`font-pixel text-sm ${busted ? 'text-red-500' : 'text-white'}`}
+        >
+          Total: {total}
+        </span>
+        
+        {busted && (
+          <span className="bg-red-700 text-white px-2 py-0.5 rounded text-xxs font-pixel animate-pulse">
+            BUST!
+          </span>
         )}
       </div>
     </div>
