@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,14 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Custom game colors
+				'dark-bg': '#1A1F2C',
+				'dark-card': '#221F26',
+				'dark-item': '#2A2731',
+				'card-border': '#403E43',
+				'card-back': '#332F38',
+				'card-back-pattern': '#2C2834',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -84,12 +92,51 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+                'fade-in': {
+                    '0%': {
+                        opacity: '0',
+                        transform: 'translateY(10px)'
+                    },
+                    '100%': {
+                        opacity: '1',
+                        transform: 'translateY(0)'
+                    }
+                },
+                'scale-in': {
+                    '0%': {
+                        transform: 'scale(0.95)',
+                        opacity: '0'
+                    },
+                    '100%': {
+                        transform: 'scale(1)',
+                        opacity: '1'
+                    }
+                }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
-			}
+				'accordion-up': 'accordion-up 0.2s ease-out',
+                'fade-in': 'fade-in 0.3s ease-out',
+                'scale-in': 'scale-in 0.2s ease-out'
+			},
+            fontSize: {
+                'xxs': '.65rem',
+            },
+            boxShadow: {
+                'glow': '0 0 15px rgba(114, 101, 190, 0.2)',
+                'glow-green': '0 0 15px rgba(74, 222, 128, 0.3)',
+                'glow-blue': '0 0 15px rgba(59, 130, 246, 0.3)',
+            },
+            fontFamily: {
+                'pixel': ['"Press Start 2P"', 'cursive', 'monospace'],
+            },
+            height: {
+                '32': '8rem',
+            },
+            minHeight: {
+                '32': '8rem',
+            }
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
