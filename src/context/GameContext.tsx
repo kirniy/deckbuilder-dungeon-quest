@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Card, Deck, createStandardDeck, drawCard } from "@/lib/cards";
 
@@ -72,7 +71,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   // Game state
   const [roundActive, setRoundActive] = useState(true);
   const [gameOver, setGameOver] = useState(false);
-  const [aiTurnInProgress, setAiTurnInProgress] = useState(false); // New state to track AI turn
+  const [aiTurnInProgress, setAiTurnInProgress] = useState(false); // Track AI turn
+  const [playerStood, setPlayerStood] = useState(false); // Track if player has stood
   
   // Calculate the total value of a hand, accounting for Aces
   const calculateHandTotal = (hand: Card[]) => {
@@ -109,67 +109,87 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setAiTotal(calculateHandTotal(aiHand));
   }, [aiHand]);
   
-  // AI logic: hit until 17 or higher
-  useEffect(() => {
-    // Only run AI turn if:
-    // 1. Round is active
-    // 2. AI has not stood
-    // 3. Player has cards
-    // 4. Player has stood (total >= 21 or manually stood)
-    // 5. AI turn is not already in progress
-    if (roundActive && 
-        !aiStood && 
-        playerHand.length > 0 && 
-        (playerTotal >= 21 || playerHand.length === 0) && 
-        !aiTurnInProgress) {
+  // AI draw single card function - for use in player turn
+  const aiDrawCard = () => {
+    if (aiTotal < 17 && roundActive && !aiStood) {
+      const [newCard, updatedDeck] = drawCard(playerDeck);
+      setPlayerDeck(updatedDeck);
+      setAiHand(prev => [...prev, newCard]);
       
-      // AI turn after player stands or busts
-      const aiTurn = async () => {
-        // Set flag to prevent multiple AI turns from running simultaneously
-        setAiTurnInProgress(true);
-
-        // Add safety check to prevent infinite loops
-        let cardCount = 0;
-        
-        while (aiTotal < 17 && cardCount < MAX_AI_CARDS) {
-          // Wait a bit for animation
-          await new Promise(resolve => setTimeout(resolve, 800));
-          
-          // Recalculate AI total to make decisions based on current state
-          const currentAiTotal = calculateHandTotal(aiHand);
-          
-          if (currentAiTotal < 17) {
-            // Draw a card
-            const [newCard, updatedDeck] = drawCard(playerDeck);
-            setPlayerDeck(updatedDeck);
-            setAiHand(prev => [...prev, newCard]);
-            
-            // Increment card counter
-            cardCount++;
-            
-            // Check if AI busts with this new card
-            const newTotal = calculateHandTotal([...aiHand, newCard]);
-            if (newTotal > 21) {
-              break;
-            }
-          } else {
-            // AI has 17 or more, end the loop
-            break;
-          }
-        }
-        
-        // AI has finished its turn
+      // Check if AI should stand based on new total
+      const newTotal = calculateHandTotal([...aiHand, newCard]);
+      if (newTotal >= 17) {
         setAiStood(true);
-        setAiTurnInProgress(false);
-        resolveRound();
-      };
+      }
       
-      aiTurn();
+      // Check if player and AI have both stood
+      if ((playerStood || playerTotal >= 21) && (newTotal >= 17 || newTotal > 21)) {
+        resolveRound();
+      }
+    } else {
+      // AI is already at 17+ or has stood
+      setAiStood(true);
+      
+      // Check if player has also stood to resolve the round
+      if (playerStood || playerTotal >= 21) {
+        resolveRound();
+      }
     }
-  }, [aiTotal, aiStood, playerHand, roundActive, aiTurnInProgress, playerTotal]);
+  };
+  
+  // AI takes its turn after player stands or busts
+  const aiFinishTurn = async () => {
+    if (aiTurnInProgress || !roundActive) return;
+    
+    setAiTurnInProgress(true);
+    
+    // AI already has 17 or more, just stand
+    if (aiTotal >= 17) {
+      setAiStood(true);
+      setAiTurnInProgress(false);
+      resolveRound();
+      return;
+    }
+    
+    // AI needs to draw until 17+
+    let cardCount = 0;
+    
+    // Keep drawing until 17+ or max cards reached
+    while (aiTotal < 17 && cardCount < MAX_AI_CARDS) {
+      // Wait for animation
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Draw card
+      const [newCard, updatedDeck] = drawCard(playerDeck);
+      setPlayerDeck(updatedDeck);
+      setAiHand(prev => [...prev, newCard]);
+      cardCount++;
+      
+      // Recalculate total with this new card
+      const newTotal = calculateHandTotal([...aiHand, newCard]);
+      
+      // If AI busts or reaches 17+, stop drawing
+      if (newTotal >= 17 || newTotal > 21) {
+        break;
+      }
+    }
+    
+    // AI's turn is complete
+    setAiStood(true);
+    setAiTurnInProgress(false);
+    resolveRound();
+  };
+  
+  // Initialize the round
+  useEffect(() => {
+    if (roundActive && playerHand.length === 0 && aiHand.length === 0) {
+      // Both start with one card
+      hitPlayer(true); // Initial draw - without AI response
+    }
+  }, [roundActive]);
   
   // Player actions
-  const hitPlayer = () => {
+  const hitPlayer = (isInitialDraw = false) => {
     if (!roundActive) return;
     
     const [newCard, updatedDeck] = drawCard(playerDeck);
@@ -179,13 +199,27 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     // Check if player busts
     const newTotal = calculateHandTotal([...playerHand, newCard]);
     if (newTotal > 21) {
-      standPlayer();
+      setPlayerStood(true);
+      aiFinishTurn();
+      return;
+    }
+    
+    // AI takes its turn after player (except on initial draw)
+    if (!isInitialDraw && !aiStood) {
+      // Add a small delay before AI moves
+      setTimeout(() => {
+        aiDrawCard();
+      }, 500);
     }
   };
   
   const standPlayer = () => {
     if (!roundActive) return;
-    setAiStood(false); // Trigger AI turn
+    
+    setPlayerStood(true);
+    
+    // AI completes its turn after player stands
+    aiFinishTurn();
   };
   
   // Resolve the round and apply damage
@@ -298,8 +332,9 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const resetRound = () => {
     setPlayerHand([]);
     setAiHand([]);
+    setPlayerStood(false);
     setAiStood(false);
-    setAiTurnInProgress(false); // Reset AI turn flag
+    setAiTurnInProgress(false);
     setRoundActive(true);
   };
   
@@ -346,6 +381,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setAiTotal(0);
     setAiStood(false);
     setAiTurnInProgress(false);
+    setPlayerStood(false);
     
     setRoundActive(true);
     setGameOver(false);
