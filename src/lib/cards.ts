@@ -1,4 +1,3 @@
-
 // Define card suits
 export type CardSuit = "hearts" | "diamonds" | "clubs" | "spades";
 
@@ -99,6 +98,23 @@ export function createSpecialCards(): Card[] {
         return Math.floor(Math.random() * 10) + 1;
       }
     },
+    {
+      value: 0,
+      suit: "spades",
+      type: "tarot",
+      name: "Death",
+      description: "Value is either 1 or 10",
+      effect: (context) => {
+        return Math.random() < 0.5 ? 1 : 10;
+      }
+    },
+    {
+      value: 7,
+      suit: "clubs",
+      type: "tarot",
+      name: "The Chariot",
+      description: "Worth 7 and gives +2 damage on next round"
+    },
     
     // Business Cards
     {
@@ -110,6 +126,20 @@ export function createSpecialCards(): Card[] {
       effect: (context) => {
         // Implementation would be in the game logic
       }
+    },
+    {
+      value: 3,
+      suit: "hearts",
+      type: "business",
+      name: "Lady Luck Casino",
+      description: "Provides +3 HP when played"
+    },
+    {
+      value: 8,
+      suit: "diamonds",
+      type: "business",
+      name: "Golden Vault Bank",
+      description: "Gain 3 chips when played"
     },
     
     // Special Cards
@@ -126,17 +156,59 @@ export function createSpecialCards(): Card[] {
       type: "special",
       name: "Blackjack Card",
       description: "Worth exactly 21 points, but high risk"
+    },
+    {
+      value: 11,
+      suit: "clubs",
+      type: "special",
+      name: "Double Ace",
+      description: "Always counts as 11, not flexible like Ace"
+    },
+    {
+      value: -2,
+      suit: "diamonds",
+      type: "special",
+      name: "Debt Card",
+      description: "Reduces hand total by 2, strategic for avoiding busts"
+    },
+    {
+      value: 5,
+      suit: "spades",
+      type: "special",
+      name: "Shield Card",
+      description: "Provides a 2 HP shield when played"
     }
   ];
 }
 
 // Create shop cards (3-5 random options)
 export function generateShopOptions(): Card[] {
-  const specialCards = createSpecialCards();
+  const allSpecialCards = createSpecialCards();
+  const result: Card[] = [];
   
-  // Shuffle and take random subset
-  const shuffled = shuffleDeck(specialCards);
-  const count = Math.floor(Math.random() * 3) + 3; // 3-5 options
+  // Ensure we have at least one card of each type
+  const cardTypes: CardType[] = ["tarot", "business", "special"];
   
-  return shuffled.slice(0, count);
+  for (const type of cardTypes) {
+    const cardsOfType = allSpecialCards.filter(card => card.type === type);
+    if (cardsOfType.length > 0) {
+      // Add a random card of this type
+      const randomCard = cardsOfType[Math.floor(Math.random() * cardsOfType.length)];
+      result.push({...randomCard}); // Clone to avoid reference issues
+    }
+  }
+  
+  // Fill remaining slots (up to 5 total) with random cards
+  const remainingCards = allSpecialCards.filter(card => 
+    !result.some(resultCard => resultCard.name === card.name)
+  );
+  
+  const shuffled = shuffleDeck(remainingCards);
+  const remainingSlots = Math.min(2, shuffled.length); // Up to 2 more cards
+  
+  for (let i = 0; i < remainingSlots; i++) {
+    result.push({...shuffled[i]}); // Clone to avoid reference issues
+  }
+  
+  return result;
 }

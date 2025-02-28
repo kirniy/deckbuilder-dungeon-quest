@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
 import { Card, generateShopOptions } from "@/lib/cards";
@@ -11,29 +10,19 @@ interface ShopScreenProps {
 const ShopScreen = ({ onContinue }: ShopScreenProps) => {
   const {
     playerChips,
-    playerHP,
-    playerMaxHP,
     playerDeck,
     spendChips,
     addCardToDeck,
-    removeCardFromDeck,
-    healPlayer
+    removeCardFromDeck
   } = useGame();
   
-  const [shopOptions, setShopOptions] = useState<(Card | { type: 'remove' | 'heal' })[]>([]);
+  const [shopOptions, setShopOptions] = useState<(Card | { type: 'remove' })[]>([]);
   const { toast } = useToast();
   
   // Generate shop options when component mounts
   useEffect(() => {
     // Get special cards
     const specialCards = generateShopOptions();
-    
-    // Add healing option
-    const healOption = {
-      type: 'heal' as const,
-      cost: 15,
-      amount: 10
-    };
     
     // Add card removal option
     const removeOption = {
@@ -50,8 +39,7 @@ const ShopScreen = ({ onContinue }: ShopScreenProps) => {
     
     // Combine all options
     setShopOptions([
-      ...cardsWithPrices,
-      healOption,
+      ...cardsWithPrices.slice(0, Math.floor(Math.random() * 3) + 3),
       removeOption
     ]);
   }, []);
@@ -63,7 +51,7 @@ const ShopScreen = ({ onContinue }: ShopScreenProps) => {
       
       // Update shop options to remove the purchased card
       setShopOptions(prev => prev.filter(option => 
-        option.type === 'heal' || option.type === 'remove' || 
+        option.type === 'remove' || 
         (option as Card).name !== card.name
       ));
       
@@ -75,33 +63,6 @@ const ShopScreen = ({ onContinue }: ShopScreenProps) => {
       toast({
         title: "Not Enough Chips",
         description: `You need ${card.cost} chips to buy this card.`,
-        variant: "destructive"
-      });
-    }
-  };
-  
-  // Use healing option
-  const useHealOption = (cost: number, amount: number) => {
-    if (playerHP === playerMaxHP) {
-      toast({
-        title: "Already at Max HP",
-        description: "You can't heal when at maximum health.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (spendChips(cost)) {
-      healPlayer(amount);
-      
-      toast({
-        title: "Healed!",
-        description: `Restored ${amount} HP.`,
-      });
-    } else {
-      toast({
-        title: "Not Enough Chips",
-        description: `You need ${cost} chips to heal.`,
         variant: "destructive"
       });
     }
@@ -151,25 +112,9 @@ const ShopScreen = ({ onContinue }: ShopScreenProps) => {
         
         {/* Shop options */}
         {!showRemoveInterface ? (
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
             {shopOptions.map((option, index) => {
-              if (option.type === 'heal') {
-                const healOption = option as { type: 'heal', cost: number, amount: number };
-                return (
-                  <div key={`heal-option`} className="flex justify-between items-center p-3 bg-dark-item rounded border border-gray-700">
-                    <div>
-                      <h3 className="font-pixel text-white">Healing Potion</h3>
-                      <p className="text-sm text-gray-300">Restore {healOption.amount} HP</p>
-                    </div>
-                    <button
-                      onClick={() => useHealOption(healOption.cost, healOption.amount)}
-                      className="bg-green-700 text-white px-3 py-1 rounded font-pixel hover:bg-green-600 transition-colors"
-                    >
-                      Buy ({healOption.cost})
-                    </button>
-                  </div>
-                );
-              } else if (option.type === 'remove') {
+              if (option.type === 'remove') {
                 const removeOption = option as { type: 'remove', cost: number };
                 return (
                   <div key={`remove-option`} className="flex justify-between items-center p-3 bg-dark-item rounded border border-gray-700">
@@ -216,7 +161,7 @@ const ShopScreen = ({ onContinue }: ShopScreenProps) => {
           // Card removal interface
           <div>
             <h3 className="font-pixel text-white mb-3">Select a card to remove:</h3>
-            <div className="grid grid-cols-4 gap-2 mb-4">
+            <div className="grid grid-cols-4 gap-2 mb-4 max-h-[50vh] overflow-y-auto">
               {playerDeck.map((card, index) => (
                 <div 
                   key={`remove-card-${index}`}

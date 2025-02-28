@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useGame } from "@/context/GameContext";
-import PlayerHand from "./PlayerHand";
-import AIHand from "./AIHand";
+import PlayerDesk from "./PlayerDesk";
+import AIDesk from "./AIDesk";
 import HealthBar from "./HealthBar";
 import GameControls from "./GameControls";
 import StatusEffects from "./StatusEffects";
@@ -41,103 +40,133 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
     hitPlayer,
     standPlayer,
     resetRound,
-    startNewEncounter
+    startNewEncounter,
+    startRound,
+    currentPhaseRef,
+    playerStood
   } = useGame();
   
   const [roundResult, setRoundResult] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
   const { toast } = useToast();
   
-  // Check for game over
-  useEffect(() => {
-    if (gameOver) {
-      const result = playerHP <= 0 ? "lose" : "win";
-      onGameOver(result);
-    }
-  }, [gameOver, playerHP, onGameOver]);
+  // The following effects handle the game flow
   
-  // Handle round end
+  // Start the round when needed
   useEffect(() => {
     if (!roundActive && !gameOver) {
-      // Show round results
-      setShowResults(true);
-      
-      // Determine round result message
+      startRound();
+      console.log("DEBUG: Starting new round automatically");
+    }
+  }, [roundActive, gameOver, startRound]);
+  
+  // Check for game over
+  useEffect(() => {
+    if (playerHP <= 0) {
+      onGameOver("lose");
+    } else if (aiHP <= 0) {
+      onGameOver("win");
+    }
+  }, [playerHP, aiHP, onGameOver]);
+  
+  // Handle round results calculation and display
+  useEffect(() => {
+    // Only calculate results if we're in the resolution phase
+    if (currentPhaseRef.current === 'resolution' && roundActive && !gameOver) {
       let resultMessage = "";
       
+      // Both busted - it's a tie
       if (playerTotal > 21 && aiTotal > 21) {
-        resultMessage = "Both busted! No damage dealt.";
-      } else if (playerTotal > 21) {
-        resultMessage = `You busted! AI deals ${aiTotal} damage.`;
-      } else if (aiTotal > 21) {
-        resultMessage = `AI busted! You deal ${playerTotal} damage.`;
+        resultMessage = `Both busted with Player: ${playerTotal} vs AI: ${aiTotal}! It's a tie - no damage dealt.`;
+      }
+      // Player bust only
+      else if (playerTotal > 21) {
+        resultMessage = `You busted with ${playerTotal}! AI deals ${aiTotal} damage.`;
+      } 
+      // AI bust only 
+      else if (aiTotal > 21) {
+        let damage = playerTotal;
         
         if (playerBonusDamage > 0) {
-          resultMessage += ` (+${playerBonusDamage} bonus damage)`;
+          damage += playerBonusDamage;
         }
-      } else if (playerTotal === aiTotal) {
-        resultMessage = `Tie at ${playerTotal}! No damage dealt.`;
-      } else if (playerTotal > aiTotal) {
-        const damage = playerTotal - aiTotal;
-        resultMessage = `You win with ${playerTotal}! Deal ${damage} damage`;
+        
+        resultMessage = `AI busted with ${aiTotal}! You deal ${damage} damage`;
         
         if (playerBonusDamage > 0) {
-          resultMessage += ` (+${playerBonusDamage} bonus damage)`;
+          resultMessage += ` (including ${playerBonusDamage} bonus damage)`;
         }
-      } else {
-        resultMessage = `AI wins with ${aiTotal}! You take ${aiTotal - playerTotal} damage.`;
-      }
-      
-      // Add bonus effect info if player hit 21
-      if (playerTotal === 21 && playerHand.length > 0) {
-        const lastCard = playerHand[playerHand.length - 1];
-        
-        switch (lastCard.suit) {
-          case "hearts":
-            resultMessage += " ♥ Bonus: Heal 5 HP.";
-            break;
-          case "diamonds":
-            resultMessage += " ♦ Bonus: Gain 5 chips.";
-            break;
-          case "clubs":
-            resultMessage += " ♣ Bonus: +5 damage next round.";
-            break;
-          case "spades":
-            resultMessage += " ♠ Bonus: Gain a 5 HP shield.";
-            break;
+      } 
+      // Both players stood, compare values
+      else if (playerStood && aiStood) {
+        // It's a tie
+        if (playerTotal === aiTotal) {
+          resultMessage = `It's a tie at ${playerTotal}! No damage dealt.`;
         }
-      }
-      
-      setRoundResult(resultMessage);
-      
-      // Show toast with round result
-      toast({
-        title: "Round Over",
-        description: resultMessage,
-      });
-      
-      // Proceed to next round after delay
-      const timer = setTimeout(() => {
-        setShowResults(false);
+        // Player wins
+        else if (playerTotal > aiTotal) {
+          let damage = playerTotal - aiTotal;
+          
+          if (playerBonusDamage > 0) {
+            damage += playerBonusDamage;
+          }
+          
+          resultMessage = `You win with ${playerTotal} vs AI's ${aiTotal}! Deal ${damage} damage`;
+          
+          if (playerBonusDamage > 0) {
+            resultMessage += ` (+${playerBonusDamage} bonus damage)`;
+          }
+        } 
+        // AI wins
+        else {
+          const damage = aiTotal - playerTotal;
+          resultMessage = `AI wins with ${aiTotal} vs your ${playerTotal}! You take ${damage} damage.`;
+        }
         
-        // Check if AI is defeated
-        if (aiHP <= 0) {
-          // Encounter complete - go to shop
+        // Add bonus effect info if player hit 21
+        if (playerTotal === 21 && playerHand.length > 0) {
+          const lastCard = playerHand[playerHand.length - 1];
+          
+          switch (lastCard.suit) {
+            case "hearts":
+              resultMessage += " ♥ Bonus: Heal 5 HP.";
+              break;
+            case "diamonds":
+              resultMessage += " ♦ Bonus: Gain 5 chips.";
+              break;
+            case "clubs":
+              resultMessage += " ♣ Bonus: +5 damage next round.";
+              break;
+            case "spades":
+              resultMessage += " ♠ Bonus: Gain a 5 HP shield.";
+              break;
+          }
+        }
+        
+        setRoundResult(resultMessage);
+        
+        // Show toast with round result
+        toast({
+          title: "Round Over",
+          description: resultMessage,
+        });
+        
+        // Proceed to next round after delay
+        const timer = setTimeout(() => {
+          setShowResults(false);
           onRoundEnd();
-        } else {
-          // Continue with next round in same encounter
           resetRound();
-        }
-      }, 3000);
-      
-      return () => clearTimeout(timer);
+        }, 3000);
+        
+        return () => clearTimeout(timer);
+      }
     }
-  }, [roundActive, gameOver, playerTotal, aiTotal, playerHand, playerBonusDamage, aiHP, onRoundEnd, resetRound, toast]);
-  
+  }, [roundActive, gameOver, playerTotal, aiTotal, playerHand, playerBonusDamage, aiHP, onRoundEnd, resetRound, toast, playerStood, aiStood, currentPhaseRef]);
+
   return (
-    <div className="flex flex-col w-full h-full max-w-md mx-auto">
+    <div className="flex flex-col w-full h-full max-w-md mx-auto bg-green-900/80 rounded-xl shadow-lg p-4 relative min-h-[700px]">
       {/* Top Section - AI Area */}
-      <div className="mb-2">
+      <div className="mb-4">
         <div className="flex justify-between items-center mb-1">
           <h2 className="text-sm font-pixel text-white">Opponent</h2>
           <div className="flex items-center">
@@ -152,8 +181,8 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
           textColor="text-red-300"
         />
         
-        <div className="mt-1 mb-2">
-          <AIHand 
+        <div className="my-4">
+          <AIDesk 
             hand={aiHand} 
             total={aiTotal} 
             isStood={aiStood}
@@ -167,24 +196,17 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
         </div>
       </div>
       
-      {/* Round Result Overlay */}
-      {showResults && roundResult && (
-        <div className="fixed inset-0 flex items-center justify-center z-20 bg-black bg-opacity-60">
-          <div className="bg-dark-card p-4 rounded-lg border-2 border-card-border shadow-glow animate-scale-in max-w-[90%]">
-            <h2 className="text-lg font-pixel mb-2 text-white">Round Result</h2>
-            <p className="text-base text-white font-pixel mb-3">{roundResult}</p>
-            <p className="text-xs text-white opacity-70">Continuing in a moment...</p>
-          </div>
+      {/* Middle Divider - Table Dealer Position */}
+      <div className="border-t-2 border-yellow-500/50 my-4 relative">
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-800 px-3 py-1 rounded-full">
+          <span className="text-xs font-pixel text-yellow-400">Dealer</span>
         </div>
-      )}
-      
-      {/* Middle Divider */}
-      <div className="border-t border-gray-700 my-2"></div>
+      </div>
       
       {/* Bottom Section - Player Area */}
-      <div className="mt-auto">
+      <div className="mt-auto flex-grow">
         {/* Player Status */}
-        <div className="mb-2">
+        <div className="mb-4">
           <div className="flex justify-between items-center mb-1">
             <h2 className="text-sm font-pixel text-white">You</h2>
             <div className="flex items-center space-x-3">
@@ -206,25 +228,37 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
         </div>
         
         {/* Player Deck Piles */}
-        <div className="flex justify-center space-x-4 mb-2">
+        <div className="flex justify-center space-x-4 mb-4">
           <DeckPile deck={playerDeck} label="Deck" />
           <DeckPile deck={playerDiscardPile} label="Discard" />
         </div>
         
         {/* Player Cards */}
-        <div className="mb-3">
-          <PlayerHand 
+        <div className="mb-6">
+          <PlayerDesk 
             hand={playerHand} 
-            total={playerTotal} 
+            total={playerTotal}
+            isStood={playerStood}
           />
         </div>
         
+        {/* Round Start Message */}
+        {roundActive && (
+          <div className="mb-3 text-center">
+            <p className="text-sm font-pixel text-yellow-300">
+              Draw cards to get as close to 21 as possible without going over!
+            </p>
+          </div>
+        )}
+        
         {/* Controls */}
-        <GameControls
-          onHit={hitPlayer}
-          onStand={standPlayer}
-          disabled={!roundActive || gameOver}
-        />
+        <div className="mt-auto">
+          <GameControls
+            onHit={hitPlayer}
+            onStand={standPlayer}
+            disabled={!roundActive || gameOver || currentPhaseRef.current !== 'playerTurn' || playerStood}
+          />
+        </div>
       </div>
     </div>
   );
