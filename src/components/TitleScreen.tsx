@@ -1,11 +1,14 @@
-
 import { motion } from "framer-motion";
+import { useTheme } from "@/App";
+import { ShaderOptions } from "@/components/ShaderBackground";
 
 interface TitleScreenProps {
   onStart: () => void;
 }
 
 const TitleScreen = ({ onStart }: TitleScreenProps) => {
+  const { currentShader, setCurrentShader } = useTheme();
+  
   return (
     <div className="flex flex-col items-center justify-center w-full max-w-md h-screen mx-auto">
       <motion.div 
@@ -27,8 +30,8 @@ const TitleScreen = ({ onStart }: TitleScreenProps) => {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3, duration: 0.5 }}
       >
-        <p className="text-gray-300 mb-3">Outplay the AI with your blackjack skills</p>
-        <p className="text-gray-400 text-sm">Get as close to 21 as possible without going over</p>
+        <p className="text-white mb-3 px-3 py-1 bg-black bg-opacity-50 rounded">Outplay the AI with your blackjack skills</p>
+        <p className="text-white text-sm px-3 py-1 bg-black bg-opacity-50 rounded">Get as close to 21 as possible without going over</p>
       </motion.div>
       
       <motion.div
@@ -39,22 +42,22 @@ const TitleScreen = ({ onStart }: TitleScreenProps) => {
       >
         <div className="bg-dark-card p-3 rounded-lg border border-gray-800">
           <h3 className="text-sm font-pixel text-white mb-1">Objective</h3>
-          <p className="text-xs text-gray-400">Reduce the AI's HP to zero by winning blackjack rounds</p>
+          <p className="text-xs text-white">Reduce the AI's HP to zero by winning blackjack rounds</p>
         </div>
         
         <div className="bg-dark-card p-3 rounded-lg border border-gray-800">
           <h3 className="text-sm font-pixel text-white mb-1">Blackjack</h3>
-          <p className="text-xs text-gray-400">Hit 21 with special suits for powerful bonuses</p>
+          <p className="text-xs text-white">Hit 21 with special suits for powerful bonuses</p>
         </div>
         
         <div className="bg-dark-card p-3 rounded-lg border border-gray-800">
           <h3 className="text-sm font-pixel text-white mb-1">Shop</h3>
-          <p className="text-xs text-gray-400">Spend chips to upgrade your deck between rounds</p>
+          <p className="text-xs text-white">Spend chips to upgrade your deck between rounds</p>
         </div>
         
         <div className="bg-dark-card p-3 rounded-lg border border-gray-800">
           <h3 className="text-sm font-pixel text-white mb-1">Strategy</h3>
-          <p className="text-xs text-gray-400">Build the perfect deck to counter the AI's strategy</p>
+          <p className="text-xs text-white">Build the perfect deck to counter the AI's strategy</p>
         </div>
       </motion.div>
       
@@ -71,13 +74,52 @@ const TitleScreen = ({ onStart }: TitleScreenProps) => {
       </motion.button>
       
       <motion.p
-        className="mt-6 text-gray-500 text-xs"
+        className="mt-6 text-white text-xs px-3 py-1 bg-black bg-opacity-50 rounded"
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.7 }}
         transition={{ delay: 1.2, duration: 0.5 }}
       >
         A pixel-art roguelike deckbuilder
       </motion.p>
+      
+      {/* Theme Selector */}
+      <motion.div
+        className="flex gap-2 mt-4"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.4, duration: 0.5 }}
+      >
+        <button 
+          onClick={() => setCurrentShader(ShaderOptions.DEFAULT)}
+          className={`px-3 py-1 rounded text-xs font-pixel transition-all ${
+            currentShader === ShaderOptions.DEFAULT 
+              ? 'bg-green-600 text-white' 
+              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+          }`}
+        >
+          Theme 1
+        </button>
+        <button 
+          onClick={() => setCurrentShader(ShaderOptions.SHADER2)}
+          className={`px-3 py-1 rounded text-xs font-pixel transition-all ${
+            currentShader === ShaderOptions.SHADER2 
+              ? 'bg-green-600 text-white' 
+              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+          }`}
+        >
+          Theme 2
+        </button>
+        <button 
+          onClick={() => setCurrentShader(ShaderOptions.SHADER3)}
+          className={`px-3 py-1 rounded text-xs font-pixel transition-all ${
+            currentShader === ShaderOptions.SHADER3 
+              ? 'bg-green-600 text-white' 
+              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+          }`}
+        >
+          Theme 3
+        </button>
+      </motion.div>
     </div>
   );
 };
