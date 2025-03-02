@@ -37,7 +37,7 @@ const PlayerDesk = ({
   return (
     <div className="flex flex-col items-center">
       {/* Player cards on desk */}
-      <div className="flex justify-center items-end mb-2 min-h-[110px] relative bg-green-800/60 rounded-lg p-2 w-full border border-green-700 shadow-inner">
+      <div className="flex justify-center items-end mb-2 min-h-[90px] relative bg-green-800/60 rounded-lg p-2 w-full border border-green-700 shadow-inner">
         {hand.length > 0 ? (
           <div className={`flex flex-row ${getCardOffset()} justify-center overflow-visible`}>
             {hand.map((card, index) => (
