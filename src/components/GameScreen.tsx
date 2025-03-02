@@ -97,14 +97,14 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
   return (
     <div className="flex flex-col items-center w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto">
       {/* Main Game Board */}
-      <div className="flex flex-col h-[80vh] max-h-[500px] w-full bg-green-900 bg-opacity-60 rounded-xl overflow-hidden shadow-2xl border border-green-700 relative backdrop-blur-sm">
+      <div className="flex flex-col min-h-[480px] max-h-[500px] w-full bg-green-900 bg-opacity-60 rounded-xl overflow-hidden shadow-2xl border border-green-700 relative backdrop-blur-sm">
         {/* Dealer label */}
         <div className="absolute top-2 left-2 bg-green-700 text-white px-2 py-1 rounded-md text-sm font-pixel border border-green-600 shadow-md z-10">
           DEALER
         </div>
 
         {/* Container for AI and Player Areas */}
-        <div className="flex flex-col justify-between h-[420px]">
+        <div className="flex flex-col justify-between flex-1">
           {/* AI Area */}
           <div className="w-full px-3 pt-6 pb-2 sm:px-4 sm:pt-8 sm:pb-3 bg-green-950 bg-opacity-40">
             {/* AI Status and HP */}
