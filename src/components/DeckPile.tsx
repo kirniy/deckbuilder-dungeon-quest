@@ -43,7 +43,7 @@ const DeckPile = ({ deck, label, isAI = false }: DeckPileProps) => {
             </div>
             
             {deck.length > 0 ? (
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 overflow-y-auto max-h-[60vh] pr-1 pb-1 scrollbar-thin scrollbar-thumb-green-700 scrollbar-track-green-950">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 overflow-y-auto max-h-[60vh] pr-1 pb-1 scrollbar-thin scrollbar-thumb-green-700 scrollbar-track-green-950 flex-1">
                 {deck.map((card, index) => (
                   <div key={`deck-card-${index}`} className="flex justify-center">
                     <CardComponent card={card} small faceDown={false} />

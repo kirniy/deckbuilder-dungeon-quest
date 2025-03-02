@@ -6,9 +6,19 @@ interface PlayerDeskProps {
   hand: Card[];
   total: number;
   isStood?: boolean;
+  onHit?: () => void;
+  onStand?: () => void;
+  controlsDisabled?: boolean;
 }
 
-const PlayerDesk = ({ hand, total, isStood = false }: PlayerDeskProps) => {
+const PlayerDesk = ({ 
+  hand, 
+  total, 
+  isStood = false,
+  onHit,
+  onStand,
+  controlsDisabled = false
+}: PlayerDeskProps) => {
   const [busted, setBusted] = useState(false);
   
   // Check if player busted
@@ -65,6 +75,43 @@ const PlayerDesk = ({ hand, total, isStood = false }: PlayerDeskProps) => {
           </span>
         )}
       </div>
+      
+      {/* Game Controls */}
+      {onHit && onStand && (
+        <div className="flex justify-between mt-4 gap-3 w-full">
+          <button
+            onClick={onHit}
+            disabled={controlsDisabled}
+            className={`
+              flex-1 py-3 rounded-lg font-pixel text-lg shadow-lg relative
+              ${controlsDisabled
+                ? 'bg-gray-700 text-gray-400 border-b-4 border-gray-900 cursor-not-allowed opacity-70' 
+                : 'bg-green-600 text-white border-b-6 border-green-900 hover:brightness-110 active:border-b-4 active:translate-y-1 transition-all duration-100'
+              }
+              before:absolute before:inset-0 before:rounded-lg before:bg-white before:opacity-10 before:top-0 before:left-0 before:w-full before:h-1/2
+            `}
+            aria-label="Hit - Draw another card"
+          >
+            <span className="drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">HIT</span>
+          </button>
+          
+          <button
+            onClick={onStand}
+            disabled={controlsDisabled}
+            className={`
+              flex-1 py-3 rounded-lg font-pixel text-lg shadow-lg relative
+              ${controlsDisabled
+                ? 'bg-gray-700 text-gray-400 border-b-4 border-gray-900 cursor-not-allowed opacity-70' 
+                : 'bg-red-600 text-white border-b-6 border-red-900 hover:brightness-110 active:border-b-4 active:translate-y-1 transition-all duration-100'
+              }
+              before:absolute before:inset-0 before:rounded-lg before:bg-white before:opacity-10 before:top-0 before:left-0 before:w-full before:h-1/2
+            `}
+            aria-label="Stand - End your turn"
+          >
+            <span className="drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">STAND</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

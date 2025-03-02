@@ -47,27 +47,6 @@ const AIDesk = ({ hand, total, isStood, revealCards }: AIDeskProps) => {
           </div>
         )}
       </div>
-      
-      {/* AI Total and Status */}
-      <div className="flex items-center justify-center space-x-2 bg-green-800 px-4 py-1.5 rounded-full border border-green-700 shadow-md">
-        <span 
-          className={`font-pixel text-base ${busted ? 'text-red-300' : 'text-white'}`}
-        >
-          Total: {total}
-        </span>
-        
-        {busted && (
-          <span className="bg-red-700 text-white px-2 py-0.5 rounded text-xs font-pixel animate-pulse font-bold">
-            BUST!
-          </span>
-        )}
-        
-        {isStood && !busted && (
-          <span className="bg-yellow-600 text-white px-2 py-0.5 rounded text-xs font-pixel font-bold">
-            STAND
-          </span>
-        )}
-      </div>
     </div>
   );
 };
