@@ -52,8 +52,8 @@ const CardComponent = ({ card, faceDown = false, small = false, aiCard = false }
   // Different sizing for small cards vs normal
   const cardClasses = small 
     ? "w-8 h-12 text-xxs" 
-    : "w-14 h-20 text-xs";
-  
+    : "w-12 h-16 text-xxs";
+
   return (
     <div 
       className={`relative ${cardClasses} rounded-md shadow-md overflow-hidden transform transition-transform duration-200
@@ -66,26 +66,26 @@ const CardComponent = ({ card, faceDown = false, small = false, aiCard = false }
           {/* Card corners with value and suit */}
           <div className={`absolute top-0.5 left-0.5 ${getSuitColor(card.suit)}`}>
             <div className="flex flex-col items-center">
-              <span className={`${small ? 'text-xxs' : 'text-xs'} leading-tight`}>{getCardValueDisplay(card.value)}</span>
-              <span className={`${small ? 'text-xxs' : 'text-xs'} leading-tight`}>{getSuitSymbol(card.suit)}</span>
+              <span className={`text-xxs leading-tight`}>{getCardValueDisplay(card.value)}</span>
+              <span className={`text-xxs leading-tight`}>{getSuitSymbol(card.suit)}</span>
             </div>
           </div>
           
           <div className={`absolute bottom-0.5 right-0.5 ${getSuitColor(card.suit)} rotate-180`}>
             <div className="flex flex-col items-center">
-              <span className={`${small ? 'text-xxs' : 'text-xs'} leading-tight`}>{getCardValueDisplay(card.value)}</span>
-              <span className={`${small ? 'text-xxs' : 'text-xs'} leading-tight`}>{getSuitSymbol(card.suit)}</span>
+              <span className={`text-xxs leading-tight`}>{getCardValueDisplay(card.value)}</span>
+              <span className={`text-xxs leading-tight`}>{getSuitSymbol(card.suit)}</span>
             </div>
           </div>
-          
+
           {/* Card center */}
           <div className={`absolute inset-0 flex items-center justify-center ${getSuitColor(card.suit)}`}>
             {small ? (
               <span className="text-sm">{getSuitSymbol(card.suit)}</span>
             ) : (
               <div className="flex flex-col items-center">
-                <span className="text-sm font-bold mb-0.5">{getCardValueDisplay(card.value)}</span>
-                <span className="text-base">{getSuitSymbol(card.suit)}</span>
+                <span className="text-xs font-bold mb-0.5">{getCardValueDisplay(card.value)}</span>
+                <span className="text-xs">{getSuitSymbol(card.suit)}</span>
               </div>
             )}
           </div>
