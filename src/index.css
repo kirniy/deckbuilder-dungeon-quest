@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
 @tailwind base;
@@ -91,19 +90,51 @@
     @apply border-border;
   }
 
+  html, body, #root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    background: transparent !important;
+    background-color: transparent !important;
+    color: white; /* Ensure text is visible on dark backgrounds */
   }
   
   /* Custom Game Styles */
   html, body {
-    @apply bg-dark-bg;
     max-width: 100vw;
     overflow-x: hidden;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
   }
+}
+
+/* Ensure the app container fills the viewport */
+#app, .app, #__next, .__next {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Force dark body background for shader visibility */
+html, body {
+  background-color: #000 !important;
+}
+
+/* Make game containers more transparent */
+.bg-green-900 {
+  background-color: rgba(20, 83, 45, 0.6) !important;
+}
+
+.bg-green-950 {
+  background-color: rgba(5, 46, 22, 0.6) !important;
 }
 
 /* Pixel art rendering */

@@ -1,18 +1,46 @@
 // Define card suits
-export type CardSuit = "hearts" | "diamonds" | "clubs" | "spades";
+export type CardSuit = "hearts" | "diamonds" | "clubs" | "spades" | "special" | "business" | "tarot";
 
 // Define types of cards (standard playing cards, tarot, business, etc.)
 export type CardType = "standard" | "tarot" | "business" | "special";
 
+// Define effect triggers
+export type EffectTrigger = "onPlay" | "onStand" | "onRoundWin" | "onRoundLose" | "onTie" | "persistent";
+
+// Define effect types
+export type EffectType = 
+  "modifyValue" | 
+  "modifyHandTotal" | 
+  "gainChips" | 
+  "loseChips" | 
+  "autoWin" | 
+  "gainShield" | 
+  "damageOpponent" | 
+  "healPlayer" | 
+  "randomValue" | 
+  "summon" | 
+  "removeOpponentCard";
+
+// Define card effect
+export interface CardEffect {
+  type: EffectType;
+  trigger: EffectTrigger;
+  amount?: number;
+  duration?: "once" | "round" | "persistent";
+  range?: [number, number]; // For random effects
+  summonType?: string;
+  description: string;
+}
+
 // Card interface
 export interface Card {
-  value: number;
+  value: number | number[];
   suit: CardSuit;
   type: CardType;
   name: string;
   description?: string;
   image?: string;
-  effect?: (context: any) => void;
+  effect?: CardEffect | null;
 }
 
 // Deck is an array of cards
@@ -71,112 +99,164 @@ export function shuffleDeck(deck: Deck): Deck {
 }
 
 // Draw a card from the deck
-export function drawCard(deck: Deck): [Card, Deck] {
+export function drawCard(deck: Deck): Card {
   if (deck.length === 0) {
-    // If deck is empty, create a new shuffled deck and draw
-    const newDeck = createStandardDeck();
-    const drawnCard = newDeck[0];
-    return [drawnCard, newDeck.slice(1)];
+    throw new Error("Cannot draw from an empty deck");
   }
   
-  // Draw the top card and return the remaining deck
-  const drawnCard = deck[0];
-  return [drawnCard, deck.slice(1)];
+  // Draw the top card
+  return deck[0];
 }
 
-// Special Cards
+// Special Cards from Dungeons & Degenerate Gamblers
 export function createSpecialCards(): Card[] {
   return [
-    // Tarot Cards
+    // Ace of Spades (Value: 1 or 11, standard blackjack ace behavior)
     {
-      value: 0, // Value determined at runtime
-      suit: "hearts",
-      type: "tarot",
-      name: "The Fool",
-      description: "Takes a random value between 1-10",
-      effect: (context) => {
-        return Math.floor(Math.random() * 10) + 1;
-      }
-    },
-    {
-      value: 0,
+      value: [1, 11],
       suit: "spades",
-      type: "tarot",
-      name: "Death",
-      description: "Value is either 1 or 10",
-      effect: (context) => {
-        return Math.random() < 0.5 ? 1 : 10;
-      }
-    },
-    {
-      value: 7,
-      suit: "clubs",
-      type: "tarot",
-      name: "The Chariot",
-      description: "Worth 7 and gives +2 damage on next round"
+      type: "standard",
+      name: "Ace of Spades",
+      description: "Value can be 1 or 11, whichever is more beneficial",
+      effect: null
     },
     
-    // Business Cards
-    {
-      value: 5,
-      suit: "diamonds",
-      type: "business",
-      name: "Gerald from Riviera",
-      description: "Removes one card from the AI's hand",
-      effect: (context) => {
-        // Implementation would be in the game logic
-      }
-    },
-    {
-      value: 3,
-      suit: "hearts",
-      type: "business",
-      name: "Lady Luck Casino",
-      description: "Provides +3 HP when played"
-    },
-    {
-      value: 8,
-      suit: "diamonds",
-      type: "business",
-      name: "Golden Vault Bank",
-      description: "Gain 3 chips when played"
-    },
-    
-    // Special Cards
-    {
-      value: 0.5,
-      suit: "hearts",
-      type: "special",
-      name: "Half Card",
-      description: "Worth 0.5 points for precision plays"
-    },
-    {
-      value: 21,
-      suit: "spades",
-      type: "special",
-      name: "Blackjack Card",
-      description: "Worth exactly 21 points, but high risk"
-    },
-    {
-      value: 11,
-      suit: "clubs",
-      type: "special",
-      name: "Double Ace",
-      description: "Always counts as 11, not flexible like Ace"
-    },
+    // Debt Card (Value: -2, Reduces player's hand total)
     {
       value: -2,
-      suit: "diamonds",
+      suit: "special",
       type: "special",
       name: "Debt Card",
-      description: "Reduces hand total by 2, strategic for avoiding busts"
+      description: "Reduces hand total by 2, useful for avoiding busts",
+      effect: {
+        type: "modifyHandTotal",
+        trigger: "onPlay",
+        amount: -2,
+        duration: "once",
+        description: "Reduces hand total by 2"
+      }
     },
+    
+    // Business Card (Value: 5, Gain 5 chips when played)
     {
       value: 5,
-      suit: "spades",
+      suit: "business",
+      type: "business",
+      name: "Business Card",
+      description: "Gain 5 chips when played",
+      effect: {
+        type: "gainChips",
+        trigger: "onPlay",
+        amount: 5,
+        duration: "once",
+        description: "Gain 5 chips when played"
+      }
+    },
+    
+    // Infinity Card (Value: 21, Automatically wins the round)
+    {
+      value: 21,
+      suit: "special",
+      type: "special",
+      name: "Infinity Card",
+      description: "Automatically wins the round unless opponent has an Infinity Card",
+      effect: {
+        type: "autoWin",
+        trigger: "onPlay",
+        duration: "once",
+        description: "Automatically wins the round"
+      }
+    },
+    
+    // Half Card (Value: 0.5, Adds precision to hand total)
+    {
+      value: 0.5,
+      suit: "special",
+      type: "special",
+      name: "Half Card",
+      description: "Adds 0.5 to hand total for precision plays",
+      effect: null
+    },
+    
+    // Shield Card (Value: 3, Grants 3 HP shield for one round)
+    {
+      value: 3,
+      suit: "special",
       type: "special",
       name: "Shield Card",
-      description: "Provides a 2 HP shield when played"
+      description: "Grants a 3 HP shield for one round",
+      effect: {
+        type: "gainShield",
+        trigger: "onPlay",
+        amount: 3,
+        duration: "round",
+        description: "Grants a 3 HP shield for one round"
+      }
+    },
+    
+    // The Fool (Value: Random 1-10, Value determined when played)
+    {
+      value: 0, // Initial value, will be set when played
+      suit: "tarot",
+      type: "tarot",
+      name: "The Fool",
+      description: "Takes a random value between 1-10 when played",
+      effect: {
+        type: "randomValue",
+        trigger: "onPlay",
+        range: [1, 10],
+        duration: "once",
+        description: "Takes a random value between 1-10 when played"
+      }
+    },
+    
+    // The Chariot (Value: 7, Deals 2 damage to opponent when played)
+    {
+      value: 7,
+      suit: "tarot",
+      type: "tarot",
+      name: "The Chariot",
+      description: "Worth 7 and deals 2 damage to opponent when played",
+      effect: {
+        type: "damageOpponent",
+        trigger: "onPlay",
+        amount: 2,
+        duration: "once",
+        description: "Deals 2 damage to opponent when played"
+      }
+    },
+    
+    // Golden Vault Bank Card (Value: 10, Gain 10 chips if you win the round)
+    {
+      value: 10,
+      suit: "business",
+      type: "business",
+      name: "Golden Vault Bank Card",
+      description: "Worth 10 and gain 10 chips if you win the round",
+      effect: {
+        type: "gainChips",
+        trigger: "onRoundWin",
+        amount: 10,
+        duration: "once",
+        description: "Gain 10 chips if you win the round"
+      }
+    },
+    
+    // Dog Card (Value: 4, Summons a dog that adds +1 to hand total each turn)
+    {
+      value: 4,
+      suit: "special",
+      type: "special",
+      name: "Dog Card",
+      description: "Summons a dog that adds +1 to your hand total each turn until defeated",
+      effect: {
+        type: "summon",
+        trigger: "onPlay",
+        amount: 1,
+        duration: "persistent",
+        summonType: "dog",
+        description: "Summons a dog that adds +1 to your hand total each turn"
+      }
     }
   ];
 }

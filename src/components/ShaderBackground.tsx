@@ -1,11 +1,19 @@
-import { useState, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 
 interface ShaderBackgroundProps {
   className?: string;
+  shaderPath?: string; // Add prop to specify which shader file to use
 }
 
-const ShaderBackground = ({ className = '' }: ShaderBackgroundProps) => {
+// Export the available shader paths for use elsewhere
+export const ShaderOptions = {
+  DEFAULT: '/shader.glsl',
+  SHADER2: '/shader2.glsl', 
+  SHADER3: '/shader3.glsl'
+};
+
+const ShaderBackground = ({ className = '', shaderPath = ShaderOptions.DEFAULT }: ShaderBackgroundProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -56,76 +64,132 @@ const ShaderBackground = ({ className = '' }: ShaderBackgroundProps) => {
     };
     window.addEventListener('touchmove', handleTouch, { passive: false });
     
-    // Create a simple, highly visible shader that doesn't depend on external files
-    const shaderMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        u_time: { value: 0 },
-        u_mouse: { value: mouse },
-        u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
-      },
-      vertexShader: `
-        varying vec2 v_uv;
-        
-        void main() {
-          v_uv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        varying vec2 v_uv;
-        
-        uniform float u_time;
-        uniform vec2 u_mouse;
-        uniform vec2 u_resolution;
-        
-        void main() {
-          // Create a highly visible pattern
-          vec2 uv = v_uv;
-          
-          // Background color (dark green)
-          vec3 color = vec3(0.0, 0.3, 0.1);
-          
-          // Add grid pattern
-          vec2 grid = fract(uv * 20.0);
-          float line = step(0.95, max(grid.x, grid.y));
-          color = mix(color, vec3(0.8, 0.7, 0.2), line * 0.5); // Gold grid lines
-          
-          // Add moving cards effect (bright spots)
-          for (int i = 0; i < 5; i++) {
-            float t = u_time * 0.5 + float(i) * 1.0;
-            vec2 center = vec2(
-              0.5 + 0.3 * cos(t + float(i)),
-              0.5 + 0.3 * sin(t * 0.7 + float(i) * 0.5)
-            );
-            float dist = length(uv - center);
-            float glow = 0.05 / (dist + 0.05);
-            color += vec3(0.9, 0.8, 0.3) * glow * 0.5; // Bright yellow-gold glow
-          }
-          
-          // Add mouse interaction
-          float mouseEffect = 0.1 / (length(uv - u_mouse) + 0.1);
-          color += vec3(0.8, 0.2, 0.2) * mouseEffect * 0.5; // Red glow around mouse
-          
-          // Ensure color has opacity 1.0 (fully visible)
-          gl_FragColor = vec4(color, 1.0);
-        }
-      `,
-      transparent: false, // Make sure it's not transparent
-    });
+    // Define the shader uniforms
+    const uniforms = {
+      u_time: { value: 0 },
+      u_mouse: { value: mouse },
+      u_resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+    };
     
-    // Create a full-screen quad
-    const geometry = new THREE.PlaneGeometry(2, 2);
-    const mesh = new THREE.Mesh(geometry, shaderMaterial);
-    scene.add(mesh);
+    // Load the specified shader file
+    let shaderMaterial: THREE.ShaderMaterial | null = null;
+    let mesh: THREE.Mesh | null = null;
+    
+    fetch(shaderPath)
+      .then(response => response.text())
+      .then(shaderCode => {
+        // Clean the shader code
+        const cleanShaderCode = shaderCode
+          .replace(/```glsl/g, '')
+          .replace(/```/g, '')
+          .replace(/varying vec2 v_uv;/g, '')
+          .replace(/uniform float u_time;/g, '')
+          .replace(/uniform vec2 u_mouse;/g, '')
+          .replace(/uniform vec2 u_resolution;/g, '');
+        
+        // Create the final shader code
+        const finalShaderCode = `
+          varying vec2 v_uv;
+          
+          uniform float u_time;
+          uniform vec2 u_mouse;
+          uniform vec2 u_resolution;
+          
+          ${cleanShaderCode}
+        `;
+        
+        // Create the shader material
+        shaderMaterial = new THREE.ShaderMaterial({
+          uniforms,
+          vertexShader: `
+            varying vec2 v_uv;
+            
+            void main() {
+              v_uv = uv;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `,
+          fragmentShader: finalShaderCode,
+          transparent: false
+        });
+        
+        // Create and add the mesh to the scene
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        mesh = new THREE.Mesh(geometry, shaderMaterial);
+        scene.add(mesh);
+      })
+      .catch(error => {
+        console.error("Error loading shader:", error);
+        
+        // Create a fallback shader if loading fails
+        shaderMaterial = new THREE.ShaderMaterial({
+          uniforms,
+          vertexShader: `
+            varying vec2 v_uv;
+            
+            void main() {
+              v_uv = uv;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `,
+          fragmentShader: `
+            varying vec2 v_uv;
+            
+            uniform float u_time;
+            uniform vec2 u_mouse;
+            uniform vec2 u_resolution;
+            
+            void main() {
+              // Create a highly visible pattern
+              vec2 uv = v_uv;
+              
+              // Background color (dark green)
+              vec3 color = vec3(0.0, 0.3, 0.1);
+              
+              // Add grid pattern
+              vec2 grid = fract(uv * 20.0);
+              float line = step(0.95, max(grid.x, grid.y));
+              color = mix(color, vec3(0.8, 0.7, 0.2), line * 0.5); // Gold grid lines
+              
+              // Add moving cards effect (bright spots)
+              for (int i = 0; i < 5; i++) {
+                float t = u_time * 0.5 + float(i) * 1.0;
+                vec2 center = vec2(
+                  0.5 + 0.3 * cos(t + float(i)),
+                  0.5 + 0.3 * sin(t * 0.7 + float(i) * 0.5)
+                );
+                float dist = length(uv - center);
+                float glow = 0.05 / (dist + 0.05);
+                color += vec3(0.9, 0.8, 0.3) * glow * 0.5; // Bright yellow-gold glow
+              }
+              
+              // Add mouse interaction
+              float mouseEffect = 0.1 / (length(uv - u_mouse) + 0.1);
+              color += vec3(0.8, 0.2, 0.2) * mouseEffect * 0.5; // Red glow around mouse
+              
+              // Ensure color has opacity 1.0 (fully visible)
+              gl_FragColor = vec4(color, 1.0);
+            }
+          `,
+          transparent: false
+        });
+        
+        // Create and add the mesh to the scene
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        mesh = new THREE.Mesh(geometry, shaderMaterial);
+        scene.add(mesh);
+      });
     
     // Animation loop
     let time = 0;
     const animate = () => {
       time += 0.016; // Approximately 60fps
       
-      shaderMaterial.uniforms.u_time.value = time;
-      shaderMaterial.uniforms.u_mouse.value = mouse;
-      shaderMaterial.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+      if (shaderMaterial) {
+        shaderMaterial.uniforms.u_time.value = time;
+        shaderMaterial.uniforms.u_mouse.value = mouse;
+        shaderMaterial.uniforms.u_resolution.value.set(window.innerWidth, window.innerHeight);
+      }
       
       renderer.render(scene, camera);
       requestAnimationFrame(animate);
@@ -141,6 +205,12 @@ const ShaderBackground = ({ className = '' }: ShaderBackgroundProps) => {
       window.removeEventListener('touchmove', handleTouch);
       
       // Dispose ThreeJS resources
+      if (shaderMaterial) {
+        shaderMaterial.dispose();
+      }
+      if (mesh && mesh.geometry) {
+        mesh.geometry.dispose();
+      }
       renderer.dispose();
       
       // Remove canvas
@@ -148,7 +218,7 @@ const ShaderBackground = ({ className = '' }: ShaderBackgroundProps) => {
         containerRef.current.removeChild(renderer.domElement);
       }
     };
-  }, []);
+  }, [shaderPath]); // Re-run effect when shaderPath changes
 
   return (
     <div

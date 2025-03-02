@@ -1,4 +1,3 @@
-
 import { Card } from "@/lib/cards";
 
 interface CardComponentProps {
@@ -14,11 +13,11 @@ const CardComponent = ({ card, faceDown = false, small = false, aiCard = false }
     switch (suit) {
       case "hearts":
       case "diamonds":
-        return "text-red-500";
+        return "text-red-600 font-bold"; // Darker red for better contrast
       case "clubs":
       case "spades":
       default:
-        return "text-black";
+        return "text-black font-bold"; // Bold black for better readability
     }
   };
   
@@ -34,7 +33,13 @@ const CardComponent = ({ card, faceDown = false, small = false, aiCard = false }
   };
   
   // Card face value representation
-  const getCardValueDisplay = (value: number) => {
+  const getCardValueDisplay = (value: number | number[]) => {
+    // Handle array values (like Aces which can be [1, 11])
+    if (Array.isArray(value)) {
+      // For display purposes, just show the first value
+      value = value[0];
+    }
+    
     if (value === 1) return "A";
     if (value === 10) return "10";
     if (value === 11) return "J";
@@ -51,25 +56,25 @@ const CardComponent = ({ card, faceDown = false, small = false, aiCard = false }
   
   return (
     <div 
-      className={`relative ${cardClasses} rounded-md shadow-md overflow-hidden transform transition-transform hover:scale-105
-        ${faceDown ? "bg-card-back" : "bg-white"}
+      className={`relative ${cardClasses} rounded-md shadow-md overflow-hidden transform transition-transform duration-200
+        ${faceDown ? "bg-blue-900 border-2 border-blue-700" : "bg-white border-2 border-gray-300"}
         ${aiCard ? "mt-1" : "mb-1"}
       `}
     >
       {!faceDown ? (
         <>
           {/* Card corners with value and suit */}
-          <div className={`absolute top-0.5 left-0.5 font-bold ${getSuitColor(card.suit)}`}>
+          <div className={`absolute top-0.5 left-0.5 ${getSuitColor(card.suit)}`}>
             <div className="flex flex-col items-center">
-              <span className="text-xxs">{getCardValueDisplay(card.value)}</span>
-              <span className="text-xxs">{getSuitSymbol(card.suit)}</span>
+              <span className={`${small ? 'text-xxs' : 'text-xs'} leading-tight`}>{getCardValueDisplay(card.value)}</span>
+              <span className={`${small ? 'text-xxs' : 'text-xs'} leading-tight`}>{getSuitSymbol(card.suit)}</span>
             </div>
           </div>
           
-          <div className={`absolute bottom-0.5 right-0.5 font-bold ${getSuitColor(card.suit)} rotate-180`}>
+          <div className={`absolute bottom-0.5 right-0.5 ${getSuitColor(card.suit)} rotate-180`}>
             <div className="flex flex-col items-center">
-              <span className="text-xxs">{getCardValueDisplay(card.value)}</span>
-              <span className="text-xxs">{getSuitSymbol(card.suit)}</span>
+              <span className={`${small ? 'text-xxs' : 'text-xs'} leading-tight`}>{getCardValueDisplay(card.value)}</span>
+              <span className={`${small ? 'text-xxs' : 'text-xs'} leading-tight`}>{getSuitSymbol(card.suit)}</span>
             </div>
           </div>
           
@@ -79,7 +84,7 @@ const CardComponent = ({ card, faceDown = false, small = false, aiCard = false }
               <span className="text-sm">{getSuitSymbol(card.suit)}</span>
             ) : (
               <div className="flex flex-col items-center">
-                <span className="text-sm mb-0.5">{getCardValueDisplay(card.value)}</span>
+                <span className="text-sm font-bold mb-0.5">{getCardValueDisplay(card.value)}</span>
                 <span className="text-base">{getSuitSymbol(card.suit)}</span>
               </div>
             )}
@@ -87,15 +92,17 @@ const CardComponent = ({ card, faceDown = false, small = false, aiCard = false }
           
           {/* Special card indicator */}
           {card.type !== "standard" && (
-            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-center text-xxs py-0.5">
+            <div className="absolute bottom-0 left-0 right-0 bg-black text-white text-center text-xxs py-0.5 font-medium">
               {card.type}
             </div>
           )}
         </>
       ) : (
         // Card back design
-        <div className="absolute inset-0 bg-card-back-pattern flex items-center justify-center">
-          <div className="w-3/4 h-3/4 border-2 border-white opacity-30 rounded-sm"></div>
+        <div className="absolute inset-0 bg-blue-900 flex items-center justify-center border border-blue-700">
+          <div className="w-3/4 h-3/4 border-2 border-white opacity-80 rounded-sm flex items-center justify-center">
+            <div className="text-white text-xs font-bold">♠♣</div>
+          </div>
         </div>
       )}
     </div>

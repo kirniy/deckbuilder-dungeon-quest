@@ -1,13 +1,13 @@
-
 import { useState, useEffect } from "react";
 import GameScreen from "@/components/GameScreen";
 import ShopScreen from "@/components/ShopScreen";
 import TitleScreen from "@/components/TitleScreen";
 import GameOverScreen from "@/components/GameOverScreen";
+import DeckSelection from "@/components/DeckSelection";
 import { GameProvider, useGame } from "@/context/GameContext";
 import { useToast } from "@/hooks/use-toast";
 
-type GameState = "title" | "game" | "shop" | "gameOver";
+type GameState = "title" | "deckSelection" | "game" | "shop" | "gameOver";
 
 const GameStateManager = ({ 
   onGameOver 
@@ -44,6 +44,14 @@ const Index = () => {
 
   // Handle transitions between game states
   const startGame = () => {
+    setGameState("deckSelection");
+    toast({
+      title: "Deck Selection",
+      description: "Build your custom deck with a mix of standard and special cards.",
+    });
+  };
+
+  const startGameWithDeck = () => {
     setGameState("game");
     toast({
       title: "Game Started",
@@ -84,8 +92,12 @@ const Index = () => {
   // Render the appropriate screen based on game state
   return (
     <GameProvider>
-      <div className="bg-dark-bg min-h-screen flex flex-col items-center justify-start px-4 py-6 overflow-hidden">
+      <div className="min-h-screen flex flex-col items-center justify-start px-4 py-6 overflow-hidden">
         {gameState === "title" && <TitleScreen onStart={startGame} />}
+        
+        {gameState === "deckSelection" && (
+          <DeckSelection onConfirm={startGameWithDeck} />
+        )}
         
         {gameState === "game" && (
           <>

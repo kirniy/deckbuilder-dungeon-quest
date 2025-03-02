@@ -3,7 +3,6 @@ import { useGame } from "@/context/GameContext";
 import PlayerDesk from "./PlayerDesk";
 import AIDesk from "./AIDesk";
 import HealthBar from "./HealthBar";
-import GameControls from "./GameControls";
 import StatusEffects from "./StatusEffects";
 import DeckPile from "./DeckPile";
 import { useToast } from "@/hooks/use-toast";
@@ -147,6 +146,7 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
         
         // Show toast with round result
         toast({
+          variant: "info",
           title: "Round Over",
           description: resultMessage,
         });
@@ -163,102 +163,146 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
     }
   }, [roundActive, gameOver, playerTotal, aiTotal, playerHand, playerBonusDamage, aiHP, onRoundEnd, resetRound, toast, playerStood, aiStood, currentPhaseRef]);
 
+  // Add a new effect to control the round start message visibility
+  const [showStartMessage, setShowStartMessage] = useState(true);
+
+  useEffect(() => {
+    if (roundActive) {
+      setShowStartMessage(true);
+      // Hide the start message after a delay
+      const timer = setTimeout(() => {
+        setShowStartMessage(false);
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [roundActive]);
+
+  const controlsDisabled = !roundActive || gameOver || currentPhaseRef.current !== 'playerTurn' || playerStood;
+
   return (
-    <div className="flex flex-col w-full h-full max-w-md mx-auto bg-green-900/80 rounded-xl shadow-lg p-4 relative min-h-[700px]">
-      {/* Top Section - AI Area */}
-      <div className="mb-4">
-        <div className="flex justify-between items-center mb-1">
-          <h2 className="text-sm font-pixel text-white">Opponent</h2>
-          <div className="flex items-center">
-            <span className="text-xs font-pixel text-white mr-2">Encounter: {encounterCount}</span>
-          </div>
+    <div className="flex flex-col items-center w-full max-w-md sm:max-w-lg md:max-w-xl mx-auto">
+      {/* Main Game Board */}
+      <div className="flex flex-col h-[80vh] max-h-[550px] w-full bg-green-900 bg-opacity-60 rounded-xl overflow-hidden shadow-2xl border border-green-700 relative backdrop-blur-sm">
+        {/* Dealer label */}
+        <div className="absolute top-2 left-2 bg-green-700 text-white px-2 py-1 rounded-md text-sm font-pixel border border-green-600 shadow-md z-10">
+          DEALER
         </div>
         
-        <HealthBar 
-          current={aiHP} 
-          max={aiMaxHP}
-          barColor="bg-red-500"
-          textColor="text-red-300"
-        />
-        
-        <div className="my-4">
+        {/* AI Area */}
+        <div className="w-full px-3 pt-6 pb-2 sm:px-4 sm:pt-8 sm:pb-3 bg-green-950 bg-opacity-40">
+          {/* AI Status */}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center">
+              <span className="ml-6 sm:ml-8 mr-2 text-white font-pixel text-sm sm:text-base">
+                AI
+              </span>
+              <StatusEffects shield={0} bonusDamage={0} />
+            </div>
+            <HealthBar 
+              current={aiHP} 
+              max={aiMaxHP} 
+              barColor="bg-red-600"
+              textColor="text-red-100"
+            />
+          </div>
+          
+          {/* AI Deck Piles */}
+          <div className="flex space-x-3 mb-2 ml-1">
+            <DeckPile deck={aiDeck} label="DECK" isAI />
+            <DeckPile deck={aiDiscardPile} label="DISC" isAI />
+          </div>
+          
+          {/* AI Desk */}
           <AIDesk 
             hand={aiHand} 
             total={aiTotal} 
-            isStood={aiStood}
-            revealCards={true} // Always show AI cards face up
+            isStood={aiStood} 
+            revealCards={true} 
           />
         </div>
         
-        <div className="flex justify-center space-x-4 mt-1">
-          <DeckPile deck={aiDeck} label="Deck" isAI />
-          <DeckPile deck={aiDiscardPile} label="Discard" isAI />
-        </div>
-      </div>
-      
-      {/* Middle Divider - Table Dealer Position */}
-      <div className="border-t-2 border-yellow-500/50 my-4 relative">
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-800 px-3 py-1 rounded-full">
-          <span className="text-xs font-pixel text-yellow-400">Dealer</span>
-        </div>
-      </div>
-      
-      {/* Bottom Section - Player Area */}
-      <div className="mt-auto flex-grow">
-        {/* Player Status */}
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-1">
-            <h2 className="text-sm font-pixel text-white">You</h2>
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center">
-                <span className="text-yellow-400 font-pixel text-xs">🪙 {playerChips}</span>
+        {/* Center Area - Round Result */}
+        <div className="flex-grow flex items-center justify-center relative backdrop-blur-0">
+          {showStartMessage && roundActive && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 z-10 backdrop-blur-sm">
+              <div className="bg-green-800 px-4 py-2 rounded-lg border-2 border-yellow-500 text-white font-pixel text-center animate-pulse shadow-xl">
+                <p className="text-sm sm:text-base">Round {encounterCount}</p>
+                <p className="text-xs sm:text-sm mt-1">Draw your cards!</p>
               </div>
-              <StatusEffects 
-                shield={playerShield} 
-                bonusDamage={playerBonusDamage} 
-              />
             </div>
-          </div>
-          <HealthBar 
-            current={playerHP} 
-            max={playerMaxHP}
-            barColor="bg-green-500"
-            textColor="text-green-300"
-          />
+          )}
+          
+          {roundResult && (
+            <div className="bg-green-800 px-3 py-2 rounded-lg border-2 border-yellow-500 text-white font-pixel text-center shadow-lg">
+              <p className="text-xs sm:text-sm">{roundResult}</p>
+            </div>
+          )}
         </div>
         
-        {/* Player Deck Piles */}
-        <div className="flex justify-center space-x-4 mb-4">
-          <DeckPile deck={playerDeck} label="Deck" />
-          <DeckPile deck={playerDiscardPile} label="Discard" />
-        </div>
-        
-        {/* Player Cards */}
-        <div className="mb-6">
+        {/* Player Area */}
+        <div className="w-full px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-3 bg-green-950 bg-opacity-40">
+          {/* Player Desk */}
           <PlayerDesk 
             hand={playerHand} 
-            total={playerTotal}
+            total={playerTotal} 
             isStood={playerStood}
           />
-        </div>
-        
-        {/* Round Start Message */}
-        {roundActive && (
-          <div className="mb-3 text-center">
-            <p className="text-sm font-pixel text-yellow-300">
-              Draw cards to get as close to 21 as possible without going over!
-            </p>
+          
+          {/* Player Deck Piles */}
+          <div className="flex space-x-3 my-2 ml-1">
+            <DeckPile deck={playerDeck} label="DECK" />
+            <DeckPile deck={playerDiscardPile} label="DISC" />
           </div>
-        )}
-        
-        {/* Controls */}
-        <div className="mt-auto">
-          <GameControls
-            onHit={hitPlayer}
-            onStand={standPlayer}
-            disabled={!roundActive || gameOver || currentPhaseRef.current !== 'playerTurn' || playerStood}
-          />
+          
+          {/* Player Status */}
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center">
+              <span className="ml-1 mr-2 text-white font-pixel text-sm sm:text-base">
+                YOU {playerChips > 0 ? `$${playerChips}` : ''}
+              </span>
+              <StatusEffects shield={playerShield} bonusDamage={playerBonusDamage} />
+            </div>
+            <HealthBar 
+              current={playerHP} 
+              max={playerMaxHP} 
+              barColor="bg-blue-600"
+              textColor="text-blue-100"
+            />
+          </div>
         </div>
+      </div>
+
+      {/* Game Controls as Separate Buttons */}
+      <div className="flex justify-between mt-2 gap-4 w-full">
+        <button
+          onClick={hitPlayer}
+          disabled={controlsDisabled}
+          className={`
+            flex-1 py-8 rounded-lg font-pixel text-2xl shadow-lg border-2
+            ${controlsDisabled
+              ? 'bg-gray-700 text-gray-400 border-gray-600 cursor-not-allowed' 
+              : 'bg-green-600 text-white border-green-500 active:transform active:scale-95'
+            }
+          `}
+          aria-label="Hit - Draw another card"
+        >
+          HIT
+        </button>
+        
+        <button
+          onClick={standPlayer}
+          disabled={controlsDisabled}
+          className={`
+            flex-1 py-8 rounded-lg font-pixel text-2xl shadow-lg border-2
+            ${controlsDisabled
+              ? 'bg-gray-700 text-gray-400 border-gray-600 cursor-not-allowed' 
+              : 'bg-red-600 text-white border-red-500 active:transform active:scale-95'
+            }
+          `}
+          aria-label="Stand - End your turn"
+        >
+          STAND
+        </button>
       </div>
     </div>
   );

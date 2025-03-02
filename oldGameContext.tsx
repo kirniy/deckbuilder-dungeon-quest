@@ -1,15 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
-import { Card, Deck, CardEffect, createStandardDeck, drawCard, shuffleDeck } from "@/lib/cards";
+import { Card, Deck, createStandardDeck, drawCard, shuffleDeck } from "@/lib/cards";
 
-type CardSuit = "hearts" | "diamonds" | "clubs" | "spades" | "special" | "business" | "tarot";
-type RoundPhase = 'idle' | 'playerTurn' | 'aiTurn' | 'resolution' | 'roundEnd';
-
-// Status effect interface
-interface StatusEffect {
-  type: string;
-  amount: number;
-  duration: number; // Rounds remaining
-}
+type CardSuit = "hearts" | "diamonds" | "clubs" | "spades";
 
 interface GameContextProps {
   // Player state
@@ -23,7 +15,6 @@ interface GameContextProps {
   playerDeck: Deck;
   playerDiscardPile: Deck;
   playerStood: boolean;
-  playerStatusEffects: StatusEffect[];
   
   // AI state
   aiHP: number;
@@ -60,8 +51,9 @@ interface GameContextProps {
   applyDamageToPlayer: (damage: number) => void;
   applyDamageToAI: (damage: number) => void;
   checkForGameOver: () => void;
-  startNewGameWithDeck: (deck: Deck) => void;
 }
+
+type RoundPhase = 'idle' | 'playerTurn' | 'aiTurn' | 'resolution';
 
 const GameContext = createContext<GameContextProps | undefined>(undefined);
 
@@ -91,7 +83,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   const [playerChips, setPlayerChips] = useState(INITIAL_CHIPS);
   const [playerDeck, setPlayerDeck] = useState<Deck>(createStandardDeck());
   const [playerDiscardPile, setPlayerDiscardPile] = useState<Deck>([]);
-  const [playerStatusEffects, setPlayerStatusEffects] = useState<StatusEffect[]>([]);
   
   // AI state
   const [aiHP, setAiHP] = useState(INITIAL_HP);
@@ -135,33 +126,37 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   function createAIDeck(currentEncounter: number = 1): Deck {
     const deck: Deck = [];
     const suits: CardSuit[] = ["hearts", "diamonds", "clubs", "spades"];
-
+    
     // Different AI types based on encounter
     const aiType = currentEncounter % 4;
-
+    
     switch (aiType) {
       case 0: // Novice AI - Balanced deck, more low cards
         for (const suit of suits) {
-          // Low cards (2-6)
-          for (let value = 2; value <= 6; value++) {
-            deck.push({
-              value,
-              suit,
-              type: "standard",
-              name: `${value} of ${suit}`,
-            });
+          // More low cards (2-6)
+          for (let i = 0; i < 3; i++) {
+            for (let value = 2; value <= 6; value++) {
+              deck.push({
+                value,
+                suit,
+                type: "standard",
+                name: `${value} of ${suit}`,
+              });
+            }
           }
-
+          
           // Medium cards (7-10)
-          for (let value = 7; value <= 10; value++) {
-            deck.push({
-              value,
-              suit,
-              type: "standard",
-              name: `${value} of ${suit}`,
-            });
+          for (let i = 0; i < 2; i++) {
+            for (let value = 7; value <= 10; value++) {
+              deck.push({
+                value,
+                suit,
+                type: "standard",
+                name: `${value} of ${suit}`,
+              });
+            }
           }
-
+          
           // Face cards and Aces
           deck.push({
             value: 10,
@@ -189,7 +184,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           });
         }
         break;
-
+        
       case 1: // Aggressive AI - More high value cards
         for (const suit of suits) {
           // Few low cards (2-6)
@@ -201,45 +196,49 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
               name: `${value} of ${suit}`,
             });
           }
-
+          
           // More high cards (7-10)
-          for (let value = 7; value <= 10; value++) {
+          for (let i = 0; i < 3; i++) {
+            for (let value = 7; value <= 10; value++) {
+              deck.push({
+                value,
+                suit,
+                type: "standard",
+                name: `${value} of ${suit}`,
+              });
+            }
+          }
+          
+          // More face cards
+          for (let i = 0; i < 2; i++) {
             deck.push({
-              value,
+              value: 10,
               suit,
               type: "standard",
-              name: `${value} of ${suit}`,
+              name: `Jack of ${suit}`,
+            });
+            deck.push({
+              value: 10,
+              suit,
+              type: "standard",
+              name: `Queen of ${suit}`,
+            });
+            deck.push({
+              value: 10,
+              suit,
+              type: "standard",
+              name: `King of ${suit}`,
+            });
+            deck.push({
+              value: 1,
+              suit,
+              type: "standard",
+              name: `Ace of ${suit}`,
             });
           }
-
-          // More face cards
-          deck.push({
-            value: 10,
-            suit,
-            type: "standard",
-            name: `Jack of ${suit}`,
-          });
-          deck.push({
-            value: 10,
-            suit,
-            type: "standard",
-            name: `Queen of ${suit}`,
-          });
-          deck.push({
-            value: 10,
-            suit,
-            type: "standard",
-            name: `King of ${suit}`,
-          });
-          deck.push({
-            value: 1,
-            suit,
-            type: "standard",
-            name: `Ace of ${suit}`,
-          });
         }
         break;
-
+        
       case 2: // Defensive AI - Very conservative, stands at 14+
         for (const suit of suits) {
           // Few low cards (2-5)
@@ -251,17 +250,19 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
               name: `${value} of ${suit}`,
             });
           }
-
+          
           // Many medium cards (6-9)
-          for (let value = 6; value <= 9; value++) {
-            deck.push({
-              value,
-              suit,
-              type: "standard",
-              name: `${value} of ${suit}`,
-            });
+          for (let i = 0; i < 4; i++) {
+            for (let value = 6; value <= 9; value++) {
+              deck.push({
+                value,
+                suit,
+                type: "standard",
+                name: `${value} of ${suit}`,
+              });
+            }
           }
-
+          
           // Few high cards and face cards
           deck.push({
             value: 10,
@@ -295,18 +296,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           });
         }
         break;
-
-      case 3: // Special "Dog" AI with adjusted distribution to maintain exactly 52 cards
-        // Distribution for Dog AI:
-        // - 8 cards of value 2 (2 per suit)
-        // - 24 cards of value 10 (6 per suit)
-        // - 12 cards of value 9 (3 per suit)
-        // - 8 cards of Ace (2 per suit)
-        // Total: 52 cards
         
+      case 3: // Special "Dog" AI with unusual deck (as mentioned in GAMEPLAY.md)
+        // Lots of 2s
         for (const suit of suits) {
-          // 2s (2 per suit = 8 total)
-          for (let i = 0; i < 2; i++) {
+          for (let i = 0; i < 8; i++) {
             deck.push({
               value: 2,
               suit,
@@ -314,8 +308,14 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
               name: `2 of ${suit}`,
             });
           }
+        }
+        
+        // "21-value cards" - cards that help reach 21 easily
+        for (const suit of suits) {
+          // Add cards that sum to 21 easily
+          // 10 + 9 + 2 = 21
           
-          // 10s (6 per suit = 24 total)
+          // Tens and face cards
           for (let i = 0; i < 6; i++) {
             deck.push({
               value: 10,
@@ -325,8 +325,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             });
           }
           
-          // 9s (3 per suit = 12 total)
-          for (let i = 0; i < 3; i++) {
+          // 9s to pair with 10s and 2s
+          for (let i = 0; i < 4; i++) {
             deck.push({
               value: 9,
               suit,
@@ -335,7 +335,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
             });
           }
           
-          // Aces (2 per suit = 8 total)
+          // Add aces for blackjack opportunities
           for (let i = 0; i < 2; i++) {
             deck.push({
               value: 1,
@@ -347,81 +347,45 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
         }
         break;
     }
-
-    console.log(`AI Deck created with ${deck.length} cards for encounter ${currentEncounter} (AI Type ${aiType})`);
     
-    // Ensure deck is exactly 52 cards
-    if (deck.length > 52) {
-      console.warn(`AI Deck had more than 52 cards (${deck.length}). Trimming to 52.`);
-      deck.length = 52;
-    }
-
     // Shuffle the deck
     return shuffleDeck(deck);
   }
   
-  // Calculate the total value of a hand, accounting for Aces and special cards
-  const calculateHandTotal = (hand: Card[], includeStatusEffects = false) => {
+  // Calculate the total value of a hand, accounting for Aces
+  const calculateHandTotal = (hand: Card[]) => {
     console.log("DEBUG: Calculating hand total for:", hand);
     if (hand.length === 0) {
       console.log("DEBUG: Empty hand, returning 0");
       return 0;
     }
     
-    // Check for auto-win cards first
-    const autoWinCard = hand.find(card => 
-      card.effect?.type === "autoWin" && card.effect.trigger === "onPlay"
-    );
-    
-    if (autoWinCard && hand === playerHand) {
-      console.log("DEBUG: Auto-win card found, returning 21");
-      return 21; // Auto-win cards effectively make your hand 21
-    }
-    
     let total = 0;
     let aces = 0;
     
-    // First pass: Add all non-Ace values and count Aces
-    hand.forEach(card => {
-      // Skip auto-win cards as they don't contribute to total
-      if (card.effect?.type === "autoWin") return;
-      
-      if (Array.isArray(card.value)) {
-        // This is an Ace or other flexible-value card (e.g., [1, 11])
+    // First pass: count non-Ace cards and track Aces
+    for (const card of hand) {
+      console.log("DEBUG: Processing card:", card.name, "value:", card.value);
+      if (card.name.includes("Ace")) {
         aces++;
       } else {
-        // Add the fixed value
-        total += card.value as number;
+        total += card.value;
       }
-    });
-    
-    // Second pass: Add Aces optimally
-    // For each Ace, add 11 if it doesn't bust, otherwise add 1
-    hand.forEach(card => {
-      // Skip auto-win cards
-      if (card.effect?.type === "autoWin") return;
-      
-      if (Array.isArray(card.value)) {
-        const [lowValue, highValue] = card.value;
-        if (total + highValue <= 21) {
-          total += highValue;
-        } else {
-          total += lowValue;
-        }
-      }
-    });
-    
-    console.log("DEBUG: Final total:", total);
-    
-    // Add bonuses from status effects
-    if (includeStatusEffects && hand === playerHand) {
-      playerStatusEffects.forEach(effect => {
-        if (effect.type === "dog") {
-          total += effect.amount;
-        }
-      });
     }
     
+    console.log("DEBUG: Before Aces - total:", total, "aces:", aces);
+    
+    // Second pass: add Aces optimally
+    for (let i = 0; i < aces; i++) {
+      // Add as 11 if it won't bust, otherwise add as 1
+      if (total + 11 <= 21) {
+        total += 11;
+      } else {
+        total += 1;
+      }
+    }
+    
+    console.log("DEBUG: Final total:", total);
     return total;
   };
   
@@ -525,110 +489,126 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     logAction("Round started! Your turn.");
   };
 
-  // Function to handle special card effects
-  const handleCardEffect = (card: Card) => {
-    if (!card.effect) return false;
+  // Resolve the round and calculate damage
+  const resolveRound = () => {
+    console.log("DEBUG: Resolving round");
+    console.log(`DEBUG: Player stood: ${playerStood}, AI stood: ${aiStood}`);
+    console.log(`DEBUG: Player total: ${playerTotal}, AI total: ${aiTotal}`);
     
-    const { type, trigger, amount = 0, duration = "once" } = card.effect;
+    // Make sure we're in the resolution phase
+    if (currentPhaseRef.current !== 'resolution') {
+      console.log("DEBUG: Called resolveRound but not in resolution phase:", currentPhaseRef.current);
+      setRoundPhase('resolution');
+      currentPhaseRef.current = 'resolution';
+    }
     
-    if (trigger === "onPlay") {
-      switch (type) {
-        case "modifyHandTotal":
-          // Cards like Debt Card that directly modify hand total
-          logAction(`${card.name} modifies hand total by ${amount}`);
+    // Don't resolve if no cards have been played by either side
+    if (!hasPlayedCards) {
+      console.log("DEBUG: No cards played, skipping resolution");
+      resetRound();
+      return;
+    }
+    
+    // Calculate final results
+    console.log(`DEBUG: Final scores - Player: ${playerTotal}, AI: ${aiTotal}`);
+    console.log(`DEBUG: Bust status - Player: ${playerTotal > 21}, AI: ${aiTotal > 21}`);
+    
+    let outcome = '';
+    let playerDamage = 0;
+    let enemyDamage = 0;
+    
+    // Determine outcome based on blackjack rules
+    if (playerTotal > 21 && aiTotal > 21) {
+      // Both bust, no damage - it's a tie
+      outcome = "Both busted! It's a tie - no damage dealt.";
+    } else if (playerTotal > 21) {
+      // Player busts, AI wins
+      enemyDamage = aiTotal;
+      outcome = `You busted! Enemy deals ${enemyDamage} damage.`;
+    } else if (aiTotal > 21) {
+      // AI busts, player wins
+      playerDamage = playerTotal + playerBonusDamage;
+      outcome = `Enemy busted! You deal ${playerDamage} damage.`;
+    } else {
+      // Compare totals if nobody busted
+      if (playerTotal > aiTotal) {
+        playerDamage = playerTotal - aiTotal + playerBonusDamage;
+        outcome = `You win! You deal ${playerDamage} damage.`;
+      } else if (aiTotal > playerTotal) {
+        enemyDamage = aiTotal - playerTotal;
+        outcome = `Enemy wins! Enemy deals ${enemyDamage} damage.`;
+      } else {
+        // Equal scores - it's a tie
+        outcome = "It's a tie! No damage dealt.";
+      }
+    }
+    
+    // Apply damage
+    if (playerDamage > 0) {
+      applyDamageToAI(playerDamage);
+    }
+    
+    if (enemyDamage > 0) {
+      applyDamageToPlayer(enemyDamage);
+    }
+    
+    // Check for special card effects when getting 21
+    if (playerTotal === 21 && playerHand.length > 0) {
+      const lastCard = playerHand[playerHand.length - 1];
+      
+      switch (lastCard.suit) {
+        case "hearts":
+          // Hearts: Heal 5 HP
+          healPlayer(5);
+          logAction("♥ Bonus: You healed 5 HP.");
           break;
-          
-        case "gainChips":
-          // Cards like Business Card that give chips when played
-          earnChips(amount);
-          logAction(`${card.name} grants ${amount} chips`);
+        case "diamonds":
+          // Diamonds: Gain 5 chips
+          earnChips(5);
+          logAction("♦ Bonus: You gained 5 chips.");
           break;
-          
-        case "autoWin":
-          // Cards like Infinity Card that auto-win the round
-          logAction(`${card.name} automatically wins the round!`);
-          
-          // Immediately force a win without further processing
-          setPlayerStood(true);
-          playerStoodRef.current = true;
-          setRoundPhase("resolution");
-          currentPhaseRef.current = "resolution";
-          
-          // We need to delay resolution slightly to allow state to update
-          setTimeout(() => {
-            resolveRoundWithWinner("player");
-          }, 500);
-          
-          // Return true to indicate that this effect should halt further processing
-          return true;
-          
-        case "gainShield":
-          // Cards like Shield Card that provide protection
-          setPlayerShield(prev => prev + amount);
-          logAction(`${card.name} grants a shield of ${amount} HP`);
+        case "clubs":
+          // Clubs: +5 damage next round
+          setPlayerBonusDamage(5);
+          logAction("♣ Bonus: +5 damage on your next round.");
           break;
-          
-        case "randomValue":
-          // Cards like The Fool with random values
-          if (card.effect.range) {
-            const [min, max] = card.effect.range;
-            const randomValue = Math.floor(Math.random() * (max - min + 1)) + min;
-            // Modify the card's value (create a new card to avoid mutating the original)
-            card = { ...card, value: randomValue };
-            logAction(`${card.name} takes random value: ${randomValue}`);
-          }
-          break;
-          
-        case "damageOpponent":
-          // Cards like The Chariot that deal direct damage
-          applyDamageToAI(amount);
-          logAction(`${card.name} deals ${amount} damage to opponent`);
-          break;
-          
-        case "summon":
-          // Cards like Dog Card that summon persistent effects
-          if (card.effect.summonType) {
-            const newEffect: StatusEffect = {
-              type: card.effect.summonType,
-              amount: amount,
-              duration: duration === "persistent" ? -1 : 1,
-            };
-            setPlayerStatusEffects(prev => [...prev, newEffect]);
-            logAction(`${card.name} summons a ${card.effect.summonType} with +${amount} effect`);
-          }
+        case "spades":
+          // Spades: Gain a 5 HP shield
+          setPlayerShield(prev => prev + 5);
+          logAction("♠ Bonus: You gained a 5 HP shield.");
           break;
       }
     }
     
-    // Return false to indicate normal processing should continue
-    return false;
+    // Update game log
+    logAction(outcome);
+    setRoundMessage(outcome);
+    
+    // Set round as inactive
+    setRoundActive(false);
+    
+    // Check if the game has ended due to HP
+    setTimeout(() => {
+      checkForGameOver();
+    }, 500);
   };
-  
+
   // Player actions
   const hitPlayer = () => {
-    console.log("DEBUG: hitPlayer called, current phase:", currentPhaseRef.current, "playerStood:", playerStoodRef.current);
-    
     // Ensure it's the player's turn and the player hasn't stood yet
-    if (currentPhaseRef.current !== 'playerTurn' || playerStoodRef.current) {
+    if (currentPhaseRef.current !== 'playerTurn' || playerStood) {
       console.log("DEBUG: Hit attempted when not player's turn or already stood");
       return;
     }
     
     const card = drawPlayerCard();
-    // Create a new hand array (don't mutate)
     const newHand = [...playerHand, card];
     setPlayerHand(newHand);
-    
-    // Handle any special card effects
-    const shouldStopProcessing = handleCardEffect(card);
-    if (shouldStopProcessing) {
-      return;
-    }
     
     // Mark that cards have been played this round
     setHasPlayedCards(true);
     
-    // Calculate new total directly from the new hand
+    // Calculate new total
     const newTotal = calculateHandTotal(newHand);
     logAction(`You placed ${card.name} on your desk. Your total is now ${newTotal}.`);
     setPlayerTotal(newTotal);
@@ -646,8 +626,7 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       
       // Start AI turn after a delay to show the player bust
       setTimeout(() => {
-        console.log("DEBUG: Starting AI turn after player bust");
-        startAITurn();
+        aiStartTurn();
       }, 1000);
       return;
     }
@@ -659,15 +638,15 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     // Start AI turn after a delay
     setTimeout(() => {
       console.log(`DEBUG: Starting AI turn after player hit, phase: ${currentPhaseRef.current}`);
-      startAITurn();
+      aiStartTurn();
     }, 750);
   };
   
   const standPlayer = () => {
-    console.log("DEBUG: standPlayer called, current phase:", currentPhaseRef.current, "playerStood:", playerStoodRef.current);
+    console.log("DEBUG: standPlayer called, current phase:", currentPhaseRef.current);
     
     // Ensure it's the player's turn and the player hasn't stood yet
-    if (currentPhaseRef.current !== 'playerTurn' || playerStoodRef.current) {
+    if (currentPhaseRef.current !== 'playerTurn' || playerStood) {
       console.log("DEBUG: Stand attempted when not player's turn or already stood");
       return;
     }
@@ -695,38 +674,31 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     // Start AI turn after a delay
     setTimeout(() => {
       console.log(`DEBUG: Starting AI turn after player stands, phase: ${currentPhaseRef.current}`);
-      startAITurn();
+      aiStartTurn();
     }, 750);
   };
   
-  // Start AI turn after player has stood or busted
-  const startAITurn = () => {
-    console.log("DEBUG: startAITurn called, currentPhase:", currentPhaseRef.current, "roundActive:", roundActive, "AI hand size:", aiHand.length);
+  // AI turn handling
+  const aiStartTurn = () => {
+    console.log("DEBUG: aiStartTurn called, currentPhase:", currentPhaseRef.current, "roundActive:", roundActive, "AI hand size:", aiHand.length);
     
-    // Ensure we're in AI turn phase
+    // Ensure this only runs during AI turn
     if (currentPhaseRef.current !== 'aiTurn') {
       console.log("DEBUG: Not AI turn, phase is:", currentPhaseRef.current);
       return;
     }
-
-    // Don't allow AI to take turn if game is over or round is not active
-    if (gameOver || !roundActive) {
-      console.log("DEBUG: Game over or round not active, AI skipping turn");
-      return;
-    }
-
+    
     // Verify AI hand and total consistency
-    const currentAiHand = [...aiHand];
-    const actualHandTotal = currentAiHand.length > 0 ? calculateHandTotal(currentAiHand) : 0;
+    const actualHandTotal = aiHand.length > 0 ? calculateHandTotal(aiHand) : 0;
     if (actualHandTotal !== aiTotal) {
-      console.log(`DEBUG: AI total mismatch in startAITurn! Stored: ${aiTotal}, Calculated: ${actualHandTotal}`);
+      console.log(`DEBUG: AI total mismatch in aiStartTurn! Stored: ${aiTotal}, Calculated: ${actualHandTotal}`);
       setAiTotal(actualHandTotal);
     }
     
     logAction("AI's turn begins.");
     
     // If AI already busted or has 21+, it's done
-    if (actualHandTotal >= 21) {
+    if (aiTotal >= 21) {
       console.log("DEBUG: AI already at or over 21, finishing turn");
       setAiStood(true);
       
@@ -748,58 +720,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    // Log current AI hand for debugging
-    console.log("DEBUG: AI hand at start of turn:", currentAiHand, "length:", currentAiHand.length);
-    
-    // If AI has no cards, deal initial cards
-    if (currentAiHand.length === 0) {
-      // We'll draw both cards in sequence to prevent state issues
-      const firstCard = drawAiCard();
-      const secondCard = drawAiCard();
-      
-      console.log("DEBUG: AI drawing first card:", firstCard);
-      console.log("DEBUG: AI drawing second card:", secondCard);
-      
-      // Update hand with both cards
-      const newHand = [firstCard, secondCard];
-      setAiHand(newHand);
-      
-      // Log the actions with a slight delay between them
-      logAction(`AI draws ${firstCard.name}.`);
-      
-      setTimeout(() => {
-        logAction(`AI draws ${secondCard.name}.`);
-        
-        // After both cards are logged, continue AI decision making
-        setTimeout(() => {
-          aiTakeTurn();
-        }, 750);
-      }, 500);
-    } else if (currentAiHand.length === 1) {
-      // AI has only one card (rare edge case), draw a second
-      const secondCard = drawAiCard();
-      console.log("DEBUG: AI drawing second card:", secondCard);
-      
-      // Update hand with both cards
-      const newHand = [...currentAiHand, secondCard];
-      setAiHand(newHand);
-      
-      logAction(`AI draws ${secondCard.name}.`);
-      
-      // After second card is drawn, continue AI decision making
-      setTimeout(() => {
-        aiTakeTurn();
-      }, 750);
-    } else {
-      // AI already has cards, continue with turn
-      console.log("DEBUG: AI already has cards, continuing turn");
-      setTimeout(() => {
-        aiTakeTurn();
-      }, 750);
-    }
+    // Call AI turn with a small delay
+    console.log("DEBUG: Calling AI turn with a small delay");
+    setTimeout(() => {
+      aiTakeTurn();
+    }, 750);
   };
   
-  // AI decision making for each action
   const aiTakeTurn = () => {
     console.log("DEBUG: AI taking turn, phase:", currentPhaseRef.current);
     
@@ -809,14 +736,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    // Get the current AI hand and total to ensure we're using the latest state
-    const currentAiHand = [...aiHand];
-    const currentAiTotal = calculateHandTotal(currentAiHand);
-    
-    console.log("DEBUG: Current AI hand in aiTakeTurn:", currentAiHand, "with total:", currentAiTotal);
-    
     // Check if AI busted or stood, in which case we end the turn
-    if (aiStood || currentAiTotal >= 21) {
+    if (aiTotal >= 21 || aiStood) {
       console.log("DEBUG: AI already busted or stood, ending turn");
       setAiStood(true);
       
@@ -838,17 +759,13 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
     
     // Apply AI decision logic
-    if (shouldAIHit(currentAiHand)) {
+    if (shouldAIHit()) {
       // AI decides to hit
-      console.log("DEBUG: AI decides to hit with hand:", currentAiHand, "and total:", currentAiTotal);
       const card = drawAiCard();
-      const newHand = [...currentAiHand, card];
-      console.log("DEBUG: AI drew card:", card, "new hand will be:", newHand);
-      
-      // Update the AI's hand
+      const newHand = [...aiHand, card];
       setAiHand(newHand);
       
-      // Calculate new total directly from the new hand
+      // Calculate new total
       const newTotal = calculateHandTotal(newHand);
       setAiTotal(newTotal);
       
@@ -879,18 +796,10 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
           currentPhaseRef.current = 'playerTurn';
           logAction("AI busted! Your turn!");
         }
-        return; // Exit early to prevent multiple state updates
       } else {
         // AI makes a decision whether to continue its turn or give it back to player
         // For more dynamic gameplay, only continue AI turn ~50% of the time when it's reasonable
-        const shouldContinue = newTotal < 17 && Math.random() <= 0.5;
-        
-        if (shouldContinue) {
-          // AI continues its turn by calling itself after a delay
-          setTimeout(() => {
-            aiTakeTurn();
-          }, 1000);
-        } else {
+        if (newTotal >= 17 || Math.random() > 0.5) {
           // Give turn back to player if player hasn't busted or stood
           if (playerTotal <= 21 && !playerStoodRef.current) {
             setRoundPhase('playerTurn');
@@ -905,6 +814,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
               resolveRound();
             }, 1000);
           }
+        } else {
+          // AI continues its turn by calling itself after a delay
+          setTimeout(() => {
+            aiTakeTurn();
+          }, 1000);
         }
       }
     } else {
@@ -928,18 +842,11 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     }
   };
   
-  // Decide whether the AI should hit or stand
-  const shouldAIHit = (currentAiHand = [...aiHand]) => {
+  const shouldAIHit = () => {
     // Calculate current hand total to ensure we're not using stale data
-    const currentAiTotal = currentAiHand.length > 0 ? calculateHandTotal(currentAiHand) : 0;
+    const currentAiTotal = aiHand.length > 0 ? calculateHandTotal(aiHand) : 0;
     
-    console.log(`DEBUG: shouldAIHit called with aiTotal: ${aiTotal}, actual hand total: ${currentAiTotal}, hand size: ${currentAiHand.length}`);
-    
-    // If the hand is empty or has only one card, always hit
-    if (currentAiHand.length < 2) {
-      console.log("DEBUG: AI hand has fewer than 2 cards, should hit");
-      return true;
-    }
+    console.log(`DEBUG: shouldAIHit called with aiTotal: ${aiTotal}, actual hand total: ${currentAiTotal}, hand size: ${aiHand.length}`);
     
     // Determine AI strategy based on encounter count
     let thresholdToStand = 17; // Default threshold
@@ -997,10 +904,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
   // Reset the round for a new game
   const resetRound = () => {
     console.log("DEBUG: Reset round called");
-    
-    // Move cards from hands to discard piles before clearing hands
-    setPlayerDiscardPile(prev => [...prev, ...playerHand]);
-    setAiDiscardPile(prev => [...prev, ...aiHand]);
     
     // Reset state
     setPlayerHand([]);
@@ -1090,17 +993,12 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     setAiDeck(createAIDeck(encounterCount));
     setAiDiscardPile([]);
     
+    setAiTurnInProgress(false);
+    setPlayerStood(false);
     setEncounterCount(1);
+    
     setRoundActive(true);
     setGameOver(false);
-    setRoundPhase('idle');
-    setActionLog([]);
-    
-    // Log the start of the new game
-    logAction("New game started");
-    
-    // Start the first round
-    startRound();
   };
 
   // Apply damage to the player, accounting for shield
@@ -1172,229 +1070,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     return false;
   };
 
-  // Resolve the round with a forced winner
-  const resolveRoundWithWinner = (winner: "player" | "ai" | "tie") => {
-    console.log(`DEBUG: Resolving round with forced winner: ${winner}`);
-    
-    // Make sure we're in the resolution phase
-    if (currentPhaseRef.current !== 'resolution') {
-      setRoundPhase('resolution');
-      currentPhaseRef.current = 'resolution';
-    }
-    
-    // Don't resolve if no cards have been played by either side
-    if (!hasPlayedCards) {
-      console.log("DEBUG: No cards played, skipping resolution");
-      resetRound();
-      return;
-    }
-    
-    let outcome = '';
-    let playerDamage = 0;
-    let enemyDamage = 0;
-    
-    // Determine outcome based on the forced winner
-    if (winner === "player") {
-      playerDamage = playerTotal + playerBonusDamage;
-      outcome = `You win! You deal ${playerDamage} damage.`;
-    } else if (winner === "ai") {
-      enemyDamage = aiTotal;
-      outcome = `Enemy wins! Enemy deals ${enemyDamage} damage.`;
-    } else {
-      // Tie
-      outcome = "It's a tie! No damage dealt.";
-    }
-    
-    // Apply damage
-    if (playerDamage > 0) {
-      applyDamageToAI(playerDamage);
-    }
-    
-    if (enemyDamage > 0) {
-      applyDamageToPlayer(enemyDamage);
-    }
-    
-    // Update game log
-    logAction(outcome);
-    setRoundMessage(outcome);
-    
-    // Set round as inactive
-    setRoundActive(false);
-    
-    // Check if the game has ended due to HP
-    setTimeout(() => {
-      checkForGameOver();
-    }, 500);
-  };
-  
-  // Resolve the round and calculate damage
-  const resolveRound = () => {
-    console.log("DEBUG: Resolving round");
-    console.log(`DEBUG: Player stood: ${playerStood}, AI stood: ${aiStood}`);
-    console.log(`DEBUG: Player total: ${playerTotal}, AI total: ${aiTotal}`);
-    
-    // Make sure we're in the resolution phase
-    if (currentPhaseRef.current !== 'resolution') {
-      console.log("DEBUG: Called resolveRound but not in resolution phase:", currentPhaseRef.current);
-      setRoundPhase('resolution');
-      currentPhaseRef.current = 'resolution';
-    }
-    
-    // Don't resolve if no cards have been played by either side
-    if (!hasPlayedCards) {
-      console.log("DEBUG: No cards played, skipping resolution");
-      resetRound();
-      return;
-    }
-    
-    // Check for special cards that auto-win
-    const playerHasAutoWin = playerHand.some(card => 
-      card.effect?.type === "autoWin" && card.effect.trigger === "onPlay"
-    );
-    
-    if (playerHasAutoWin) {
-      resolveRoundWithWinner("player");
-      return;
-    }
-    
-    // Calculate final results
-    const finalPlayerTotal = calculateHandTotal(playerHand);
-    const finalAiTotal = calculateHandTotal(aiHand);
-    
-    console.log(`DEBUG: Final scores - Player: ${finalPlayerTotal}, AI: ${finalAiTotal}`);
-    console.log(`DEBUG: Bust status - Player: ${finalPlayerTotal > 21}, AI: ${finalAiTotal > 21}`);
-    
-    let outcome = '';
-    let playerDamage = 0;
-    let enemyDamage = 0;
-    
-    // Determine outcome based on blackjack rules
-    if (finalPlayerTotal > 21 && finalAiTotal > 21) {
-      // Both bust, no damage - it's a tie
-      outcome = "Both busted! It's a tie - no damage dealt.";
-    } else if (finalPlayerTotal > 21) {
-      // Player busts, AI wins
-      enemyDamage = finalAiTotal;
-      outcome = `You busted! Enemy deals ${enemyDamage} damage.`;
-    } else if (finalAiTotal > 21) {
-      // AI busts, player wins
-      playerDamage = finalPlayerTotal + playerBonusDamage;
-      outcome = `Enemy busted! You deal ${playerDamage} damage.`;
-    } else {
-      // Compare totals if nobody busted
-      if (finalPlayerTotal > finalAiTotal) {
-        playerDamage = finalPlayerTotal - finalAiTotal + playerBonusDamage;
-        outcome = `You win! You deal ${playerDamage} damage.`;
-      } else if (finalAiTotal > finalPlayerTotal) {
-        enemyDamage = finalAiTotal - finalPlayerTotal;
-        outcome = `Enemy wins! Enemy deals ${enemyDamage} damage.`;
-      } else {
-        // Equal scores - it's a tie
-        outcome = "It's a tie! No damage dealt.";
-      }
-    }
-    
-    // Apply damage
-    if (playerDamage > 0) {
-      applyDamageToAI(playerDamage);
-    }
-    
-    if (enemyDamage > 0) {
-      applyDamageToPlayer(enemyDamage);
-    }
-    
-    // Check for special card effects when getting 21
-    if (finalPlayerTotal === 21 && playerHand.length > 0) {
-      const lastCard = playerHand[playerHand.length - 1];
-      
-      switch (lastCard.suit) {
-        case "hearts":
-          // Hearts: Heal 5 HP
-          healPlayer(5);
-          logAction("♥ Bonus: You healed 5 HP.");
-          break;
-        case "diamonds":
-          // Diamonds: Gain 5 chips
-          earnChips(5);
-          logAction("♦ Bonus: You gained 5 chips.");
-          break;
-        case "clubs":
-          // Clubs: +5 damage next round
-          setPlayerBonusDamage(5);
-          logAction("♣ Bonus: +5 damage on your next round.");
-          break;
-        case "spades":
-          // Spades: Gain a 5 HP shield
-          setPlayerShield(prev => prev + 5);
-          logAction("♠ Bonus: You gained a 5 HP shield.");
-          break;
-      }
-    }
-    
-    // Update game log
-    logAction(outcome);
-    setRoundMessage(outcome);
-    
-    // Set round as inactive
-    setRoundActive(false);
-    
-    // Check if the game has ended due to HP
-    setTimeout(() => {
-      checkForGameOver();
-    }, 500);
-  };
-  
-  // Start a new game with a custom deck
-  const startNewGameWithDeck = (deck: Deck) => {
-    // Reset all game state to initial values
-    setPlayerHP(INITIAL_HP);
-    setPlayerMaxHP(INITIAL_HP);
-    setPlayerHand([]);
-    setPlayerTotal(0);
-    setPlayerShield(0);
-    setPlayerBonusDamage(0);
-    setPlayerChips(INITIAL_CHIPS);
-    setPlayerDeck(shuffleDeck(deck)); // Use the provided deck
-    setPlayerDiscardPile([]);
-    setPlayerStatusEffects([]);
-    
-    setAiHP(INITIAL_HP);
-    setAiMaxHP(INITIAL_HP);
-    setAiHand([]);
-    setAiTotal(0);
-    setAiStood(false);
-    setAiDeck(createAIDeck(1));
-    setAiDiscardPile([]);
-    
-    setEncounterCount(1);
-    setRoundActive(true);
-    setGameOver(false);
-    setRoundPhase('idle');
-    setActionLog([]);
-    
-    // Log the start of the new game
-    logAction("New game started with custom deck");
-    
-    // Start the first round
-    startRound();
-  };
-  
-  // Helper to get a card's numeric value (including handling arrays)
-  const getCardValue = (card: Card): number => {
-    if (Array.isArray(card.value)) {
-      // For cards like Ace that can be 1 or 11, pick most beneficial value
-      const totalWithLow = playerTotal + card.value[0];
-      const totalWithHigh = playerTotal + card.value[1];
-      
-      if (totalWithHigh <= 21) {
-        return card.value[1];
-      }
-      return card.value[0];
-    }
-    
-    return card.value as number;
-  };
-  
   const value = {
     // Player state
     playerHP,
@@ -1407,7 +1082,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     playerDeck,
     playerDiscardPile,
     playerStood,
-    playerStatusEffects,
     
     // AI state
     aiHP,
@@ -1444,7 +1118,6 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     applyDamageToPlayer,
     applyDamageToAI,
     checkForGameOver,
-    startNewGameWithDeck,
   };
   
   return (
