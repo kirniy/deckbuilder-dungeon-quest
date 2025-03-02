@@ -31,7 +31,7 @@ const PlayerDesk = ({
     if (hand.length <= 3) return "space-x-3";
     if (hand.length === 4) return "space-x-1";
     if (hand.length === 5) return "space-x-0.5";
-    return "-space-x-1"; // Still slightly overlapping for 6+ cards but keeping cards visible
+    return "space-x-0.5"; // Prevent excessive overlap for 6+ cards
   };
   
   return (

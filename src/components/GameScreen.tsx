@@ -102,81 +102,94 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
         <div className="absolute top-2 left-2 bg-green-700 text-white px-2 py-1 rounded-md text-sm font-pixel border border-green-600 shadow-md z-10">
           DEALER
         </div>
-        
-        {/* AI Area - Fixed height to prevent layout shifts */}
-        <div className="w-full px-3 pt-6 pb-2 sm:px-4 sm:pt-8 sm:pb-3 bg-green-950 bg-opacity-40 min-h-[120px]">
-          {/* AI Status and HP */}
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center">
-              <span className="ml-6 sm:ml-8 mr-2 text-white font-pixel text-sm sm:text-base">
-                AI
-              </span>
-              <StatusEffects shield={0} bonusDamage={0} />
+
+        {/* Container for AI and Player Areas */}
+        <div className="flex flex-col justify-between h-full">
+          {/* AI Area */}
+          <div className="w-full px-3 pt-6 pb-2 sm:px-4 sm:pt-8 sm:pb-3 bg-green-950 bg-opacity-40">
+            {/* AI Status and HP */}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center">
+                <span className="ml-6 sm:ml-8 mr-2 text-white font-pixel text-sm sm:text-base">
+                  AI
+                </span>
+                <StatusEffects shield={0} bonusDamage={0} />
+              </div>
+              {/* AI HP Bar - Fixed position */}
+              <div className="w-1/2 max-w-44">
+                <HealthBar
+                  current={aiHP}
+                  max={aiMaxHP}
+                  barColor="bg-red-600"
+                  textColor="text-red-100"
+                />
+              </div>
             </div>
-            {/* AI HP Bar - Fixed position */}
-            <div className="w-1/2 max-w-44">
-              <HealthBar
-                current={aiHP}
-                max={aiMaxHP}
-                barColor="bg-red-600"
-                textColor="text-red-100"
-              />
+
+            {/* AI Deck Piles */}
+            <div className="flex space-x-3 mb-2 ml-1">
+              <DeckPile deck={aiDeck} label="DECK" isAI />
+              <DeckPile deck={aiDiscardPile} label="DISC" isAI />
             </div>
-          </div>
-          
-          {/* Total */}
-          <div className="flex items-center justify-center space-x-2 bg-green-800 px-4 py-1.5 rounded-full border border-green-700 shadow-md">
-            <span className="font-pixel text-base text-white">
+
+            {/* Total */}
+            <div className="flex items-center justify-center space-x-2 bg-green-800 px-4 py-1.5 rounded-full border border-green-700 shadow-md">
+              <span className="font-pixel text-base text-white">
                 Total: {aiTotal}
-            </span>
-          </div>
-
-          {/* AI Deck Piles */}
-          <div className="flex space-x-3 mb-2 ml-1">
-            <DeckPile deck={aiDeck} label="DECK" isAI />
-            <DeckPile deck={aiDiscardPile} label="DISC" isAI />
-          </div>
-
-          {/* AI Desk */}
-          <AIDesk
-            hand={aiHand}
-            total={aiTotal}
-            isStood={aiStood}
-            revealCards={true}
-          />
-        </div>
-
-        {/* Player Area - Fixed height to prevent layout shifts */}
-        <div className="w-full px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-3 bg-green-950 bg-opacity-40 min-h-[120px]">
-          {/* Player Desk */}
-          <PlayerDesk
-            hand={playerHand}
-            total={playerTotal}
-            isStood={playerStood}
-          />
-
-          {/* Player Deck Piles */}
-          <div className="flex space-x-3 my-2 ml-1">
-            <DeckPile deck={playerDeck} label="DECK" />
-            <DeckPile deck={playerDiscardPile} label="DISC" />
-          {/* Player HP Bar - New position */}
-            <div className="w-1/2 max-w-44">
-              <HealthBar
-                current={playerHP}
-                max={playerMaxHP}
-                barColor="bg-blue-600"
-                textColor="text-blue-100"
-              />
-            </div>
-          </div>
-
-          {/* Player Status and HP */}
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center">
-              <span className="ml-1 mr-2 text-white font-pixel text-sm sm:text-base">
-                YOU {playerChips > 0 ? `$${playerChips}` : ''}
               </span>
-              <StatusEffects shield={playerShield} bonusDamage={playerBonusDamage} />
+              {aiStood && aiTotal > 0 && (
+                <span className="bg-yellow-600 text-white px-2 py-0.5 rounded text-xs font-pixel font-bold w-[44px] text-center">
+                  STAND
+                </span>
+              )}
+              {!aiStood && (
+                  <span className="text-white px-2 py-0.5 rounded text-xs font-pixel font-bold w-[44px] text-center">
+                    &nbsp;
+                  </span>
+              )}
+            </div>
+
+            {/* AI Desk */}
+            <AIDesk
+              hand={aiHand}
+              total={aiTotal}
+              isStood={aiStood}
+              revealCards={true}
+            />
+          </div>
+
+          {/* Player Area */}
+          <div className="w-full px-3 pb-3 pt-2 sm:px-4 sm:pb-4 sm:pt-3 bg-green-950 bg-opacity-40">
+            {/* Player Desk */}
+            <PlayerDesk
+              hand={playerHand}
+              total={playerTotal}
+              isStood={playerStood}
+            />
+
+            {/* Player Deck Piles */}
+            <div className="flex space-x-3 my-2 ml-1">
+              <DeckPile deck={playerDeck} label="DECK" />
+              <DeckPile deck={playerDiscardPile} label="DISC" />
+            {/* Player HP Bar - New position */}
+              <div className="w-1/2 max-w-44">
+                <HealthBar
+                  current={playerHP}
+                  max={playerMaxHP}
+                  barColor="bg-blue-600"
+                  textColor="text-blue-100"
+                />
+              </div>
+            </div>
+
+            {/* Player Status and HP */}
+            <div className="flex items-center justify-between mt-2">
+              <div className="flex items-center">
+                <span className="ml-1 mr-2 text-white font-pixel text-sm sm:text-base">
+                  YOU {playerChips > 0 ? `$${playerChips}` : ''}
+                </span>
+                <StatusEffects shield={playerShield} bonusDamage={playerBonusDamage} />
+              </div>
             </div>
           </div>
         </div>

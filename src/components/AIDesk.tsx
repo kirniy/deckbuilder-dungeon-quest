@@ -22,13 +22,13 @@ const AIDesk = ({ hand, total, isStood, revealCards }: AIDeskProps) => {
     if (hand.length <= 3) return "space-x-3";
     if (hand.length === 4) return "space-x-1";
     if (hand.length === 5) return "space-x-0.5";
-    return "-space-x-1"; // Still slightly overlapping for 6+ cards but keeping cards visible
+    return "space-x-0.5"; // Prevent excessive overlap for 6+ cards
   };
   
   return (
     <div className="flex flex-col items-center">
       {/* AI cards shown on desk */}
-      <div className="flex justify-center items-start mb-2 min-h-[110px] relative bg-green-800/60 rounded-lg p-2 w-full border border-green-700 shadow-inner">
+      <div className="flex justify-center items-center mb-2 min-h-[110px] relative bg-green-800/60 rounded-lg p-2 w-full border border-green-700 shadow-inner">
         {hand.length > 0 ? (
           <div className={`flex flex-row ${getCardOffset()} justify-center overflow-visible`}>
             {hand.map((card, index) => (

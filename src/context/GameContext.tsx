@@ -1142,16 +1142,16 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       setGameOver(true);
       return true;
     }
-    
+
     // Check if AI is defeated
     if (aiHP <= 0) {
       logAction("Victory! You have defeated the opponent.");
-      
+
       // Award bonus chips for winning the encounter
       earnChips(20);
-      
+
       // If this was the final encounter, player wins the game
-      if (encounterCount >= MAX_ENCOUNTERS) { 
+      if (encounterCount >= MAX_ENCOUNTERS) {
         logAction("Congratulations! You've completed all encounters!");
         setGameOver(true);
       } else {
@@ -1163,13 +1163,8 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
       }
       return true;
     }
-    
-    // If the game is not over, reset for the next round
-    setTimeout(() => {
-      resetRound();
-    }, 1500);
-    
-    return false;
+
+    return false; // Game is NOT over
   };
 
   // Resolve the round with a forced winner
@@ -1220,11 +1215,14 @@ export const GameProvider = ({ children }: { children: ReactNode }) => {
     
     // Set round as inactive
     setRoundActive(false);
-    
+
     // Check if the game has ended due to HP
-    setTimeout(() => {
-      checkForGameOver();
-    }, 500);
+    if (!checkForGameOver()) {
+        // If the game is NOT over, reset for the next round
+        setTimeout(() => {
+            resetRound();
+        }, 1500);
+    }
   };
   
   // Resolve the round and calculate damage
