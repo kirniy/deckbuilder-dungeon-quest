@@ -278,30 +278,32 @@ const GameScreen = ({ onRoundEnd, onGameOver }: GameScreenProps) => {
           onClick={hitPlayer}
           disabled={controlsDisabled}
           className={`
-            flex-1 py-8 rounded-lg font-pixel text-2xl shadow-lg border-2
+            flex-1 py-6 rounded-lg font-pixel text-2xl shadow-lg relative
             ${controlsDisabled
-              ? 'bg-gray-700 text-gray-400 border-gray-600 cursor-not-allowed' 
-              : 'bg-green-600 text-white border-green-500 active:transform active:scale-95'
+              ? 'bg-gray-700 text-gray-400 border-b-4 border-gray-900 cursor-not-allowed opacity-70' 
+              : 'bg-green-600 text-white border-b-8 border-green-900 hover:brightness-110 active:border-b-4 active:translate-y-1 transition-all duration-100'
             }
+            before:absolute before:inset-0 before:rounded-lg before:bg-white before:opacity-10 before:top-0 before:left-0 before:w-full before:h-1/2
           `}
           aria-label="Hit - Draw another card"
         >
-          HIT
+          <span className="drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">HIT</span>
         </button>
         
         <button
           onClick={standPlayer}
           disabled={controlsDisabled}
           className={`
-            flex-1 py-8 rounded-lg font-pixel text-2xl shadow-lg border-2
+            flex-1 py-6 rounded-lg font-pixel text-2xl shadow-lg relative
             ${controlsDisabled
-              ? 'bg-gray-700 text-gray-400 border-gray-600 cursor-not-allowed' 
-              : 'bg-red-600 text-white border-red-500 active:transform active:scale-95'
+              ? 'bg-gray-700 text-gray-400 border-b-4 border-gray-900 cursor-not-allowed opacity-70' 
+              : 'bg-red-600 text-white border-b-8 border-red-900 hover:brightness-110 active:border-b-4 active:translate-y-1 transition-all duration-100'
             }
+            before:absolute before:inset-0 before:rounded-lg before:bg-white before:opacity-10 before:top-0 before:left-0 before:w-full before:h-1/2
           `}
           aria-label="Stand - End your turn"
         >
-          STAND
+          <span className="drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">STAND</span>
         </button>
       </div>
     </div>

@@ -46,16 +46,18 @@ const HealthBar = ({
   return (
     <div className="mb-2">
       <div className="flex justify-between items-center mb-1">
-        <span className={`text-sm sm:text-base font-pixel font-bold ${getTextColorClass()}`}>
+        <span className={`text-sm sm:text-base font-pixel font-bold ${getTextColorClass()} drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]`}>
           HP: {current}/{max}
         </span>
       </div>
       
-      <div className="w-full h-4 sm:h-5 bg-gray-900 rounded-full overflow-hidden border-2 border-gray-700 shadow-inner">
+      <div className="w-full h-5 sm:h-6 bg-gray-900 rounded-full overflow-hidden border-2 border-gray-700 shadow-inner">
         <div
-          className={`h-full ${barColor} ${animate ? 'animate-pulse' : ''} transition-all duration-300 ease-out rounded-full`}
+          className={`h-full ${barColor} ${animate ? 'animate-pulse' : ''} transition-all duration-300 ease-out rounded-full relative`}
           style={{ width: `${width}%` }}
-        ></div>
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-white to-transparent opacity-20"></div>
+        </div>
       </div>
     </div>
   );

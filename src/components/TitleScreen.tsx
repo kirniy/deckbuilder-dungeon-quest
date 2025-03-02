@@ -63,14 +63,16 @@ const TitleScreen = ({ onStart }: TitleScreenProps) => {
       
       <motion.button
         onClick={onStart}
-        className="bg-green-600 text-white px-8 py-4 rounded-lg font-pixel text-xl shadow-glow-green hover:bg-green-700 active:transform active:scale-95 transition-all duration-150"
+        className="bg-green-600 text-white px-8 py-4 rounded-lg font-pixel text-xl shadow-xl relative
+          border-b-8 border-green-900 hover:brightness-110 active:border-b-4 active:translate-y-1 transition-all duration-100
+          before:absolute before:inset-0 before:rounded-lg before:bg-white before:opacity-10 before:top-0 before:left-0 before:w-full before:h-1/2"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.9, duration: 0.5 }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        START GAME
+        <span className="drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">START GAME</span>
       </motion.button>
       
       <motion.p
@@ -84,40 +86,40 @@ const TitleScreen = ({ onStart }: TitleScreenProps) => {
       
       {/* Theme Selector */}
       <motion.div
-        className="flex gap-2 mt-4"
+        className="flex gap-3 mt-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.4, duration: 0.5 }}
       >
         <button 
           onClick={() => setCurrentShader(ShaderOptions.DEFAULT)}
-          className={`px-3 py-1 rounded text-xs font-pixel transition-all ${
+          className={`px-3 py-1 rounded text-xs font-pixel transition-all relative ${
             currentShader === ShaderOptions.DEFAULT 
-              ? 'bg-green-600 text-white' 
-              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              ? 'bg-green-600 text-white border-b-2 border-green-900 before:absolute before:inset-0 before:rounded before:bg-white before:opacity-10 before:top-0 before:left-0 before:w-full before:h-1/2' 
+              : 'bg-gray-800 text-gray-400 hover:bg-gray-700 border-b-2 border-gray-900 hover:border-gray-700'
           }`}
         >
-          Theme 1
+          <span className={currentShader === ShaderOptions.DEFAULT ? 'drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]' : ''}>Theme 1</span>
         </button>
         <button 
           onClick={() => setCurrentShader(ShaderOptions.SHADER2)}
-          className={`px-3 py-1 rounded text-xs font-pixel transition-all ${
+          className={`px-3 py-1 rounded text-xs font-pixel transition-all relative ${
             currentShader === ShaderOptions.SHADER2 
-              ? 'bg-green-600 text-white' 
-              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              ? 'bg-green-600 text-white border-b-2 border-green-900 before:absolute before:inset-0 before:rounded before:bg-white before:opacity-10 before:top-0 before:left-0 before:w-full before:h-1/2' 
+              : 'bg-gray-800 text-gray-400 hover:bg-gray-700 border-b-2 border-gray-900 hover:border-gray-700'
           }`}
         >
-          Theme 2
+          <span className={currentShader === ShaderOptions.SHADER2 ? 'drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]' : ''}>Theme 2</span>
         </button>
         <button 
           onClick={() => setCurrentShader(ShaderOptions.SHADER3)}
-          className={`px-3 py-1 rounded text-xs font-pixel transition-all ${
+          className={`px-3 py-1 rounded text-xs font-pixel transition-all relative ${
             currentShader === ShaderOptions.SHADER3 
-              ? 'bg-green-600 text-white' 
-              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              ? 'bg-green-600 text-white border-b-2 border-green-900 before:absolute before:inset-0 before:rounded before:bg-white before:opacity-10 before:top-0 before:left-0 before:w-full before:h-1/2' 
+              : 'bg-gray-800 text-gray-400 hover:bg-gray-700 border-b-2 border-gray-900 hover:border-gray-700'
           }`}
         >
-          Theme 3
+          <span className={currentShader === ShaderOptions.SHADER3 ? 'drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]' : ''}>Theme 3</span>
         </button>
       </motion.div>
     </div>
